@@ -1,5 +1,5 @@
 ====================================================================================================
-DOCUMENTO 01/23: 00_STATUS/STATUS_PEDIDO_3010.md
+DOCUMENTO 01/24: 00_STATUS/STATUS_PEDIDO_3010.md
 ====================================================================================================
 
 # STATUS — pedido-3010
@@ -8,8 +8,8 @@ DOCUMENTO 01/23: 00_STATUS/STATUS_PEDIDO_3010.md
 **Data de referência:** 2026-09-28
 **Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
 **Branch:** `master`
-**HEAD atual:** `8553401 docs: aviso de peso acima de 10%`
-**Remoto acompanhado:** `origin/master` em `8553401`
+**HEAD acompanhado:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055 preparado)
+**Remoto acompanhado:** `origin/master` em `20fe04e` (0055 ainda não aplicado/publicado)
 **Estado:** etapa 3 (gravação do 1º pedido) validada na homologação; produção **bloqueada** (`GRAVACAO_3010_ATIVA=N`) até a QTSUGESTAO ser conferida
 **Serviços:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor (base TESTE na homologação)
 
@@ -87,8 +87,9 @@ peso e item repetido       regras novas cobertas por teste; reteste do time pend
 
 ## 2. Patches
 
-Aplicados em ordem com `git am` sobre o pacote original; todos no GitHub
-(`origin/master` em `8553401` até o 0053; o 0054 é aplicado junto com a criação deste repositório).
+Aplicados em ordem com `git am` sobre o pacote original. O GitHub está em
+`origin/master = 20fe04e` com o 0054. O **0055 está preparado neste checkpoint**,
+mas ainda precisa ser aplicado/publicado na máquina em uso.
 
 ### Etapa 1 e homologação: regras, prévia, impostos e o roteiro (23/09)
 
@@ -175,6 +176,14 @@ Aplicados em ordem com `git am` sobre o pacote original; todos no GitHub
       (+ git rm dos 4 documentos antigos de docs/, fora do patch)
 ```
 
+### Fechamento da QTSUGESTAO (28/09)
+
+```text
+0055  feat: roteiro 2.24 recebe NUMPED de pedido da 3010, lê estoque/giro/prazos/
+      pendência/mínimo/múltiplo e infere a QTVEZES para testar a conta gravada
+      (somente leitura; não muda a QTSUGESTAO da aplicação)
+```
+
 Fora da sequência: `comex-api-rota-leitura.patch` e
 `comex-api-senha-fora-do-teste.patch`, aplicados no comex-api
 (`04_CONTRATOS/CONTRATO_COMEX_API.md`).
@@ -206,9 +215,9 @@ Roteiros: `05_OPERACAO/BASE_TESTE.md`.
 ## 5. Em aberto
 
 ```text
-QTSUGESTAO        decidido calcular como a 3010; a conta não aparece no trace. Conferir
-                  lançando um pedido PELA 3010 na TESTE, com um item do roteiro lendo
-                  estoque e giro na mesma hora. É o que libera a produção.
+QTSUGESTAO        item 2.24 preparado no patch 0055. Falta lançar um pedido PELA 3010
+                  na TESTE e rodar `NUMPED_QTSUGESTAO=<n> API_URL=nao npm run homologacao`.
+                  A conta continua hipótese até essa evidência; é o que bloqueia produção.
 2º pedido         qual ação da 3010 o gera e por que o VLTOTAL muda (não bloqueia)
 frete e despesas  onde a 3010 guarda os totais, em que moeda se digita o frete, se o
                   AFRMM é digitado: precisa do trace de um lançamento com despesas
@@ -227,8 +236,8 @@ backups do .40    teste de restauração pendente; MSSRV005 no Ubuntu 18.04
 ```text
 1. reteste do time com os 3 LASTs (26MIW185F, 26MOC267F, 26MSR296F) no ambiente novo
    de teste; conferir PJ10PCM numa linha e os pesos do LAST (VALIDACAO_TIME, seção 7)
-2. QTSUGESTAO: preparar o item do roteiro; lançar um pedido pela 3010 na TESTE; achar
-   a conta
+2. QTSUGESTAO: aplicar o 0055; lançar um pedido pela 3010 na TESTE; rodar o item 2.24
+   com o NUMPED e fechar a conta (`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`)
 3. impostos editáveis na tela
 4. frete e despesas (depois do trace)
 5. publicação da tela
@@ -249,7 +258,7 @@ entrega               todo commit de código vira patch; conferir "commits = pat
 ```
 
 ====================================================================================================
-DOCUMENTO 02/23: 01_ARQUITETURA/VISAO_GERAL.md
+DOCUMENTO 02/24: 01_ARQUITETURA/VISAO_GERAL.md
 ====================================================================================================
 
 # Arquitetura — Visão Geral
@@ -319,7 +328,7 @@ A arquitetura segue a do `amazon-winthor-integration`: login WinThor, logs com i
 de rastreio, validação do `.env` na subida, PM2.
 
 ====================================================================================================
-DOCUMENTO 03/23: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
+DOCUMENTO 03/24: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
 ====================================================================================================
 
 # Arquitetura — Fronteira comex-api × pedido-3010 × WinThor
@@ -372,7 +381,7 @@ API -> Oracle        DB_HOST / DB_SERVICE_NAME; homologação = serviço TESTE e
 ```
 
 ====================================================================================================
-DOCUMENTO 04/23: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
+DOCUMENTO 04/24: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
 ====================================================================================================
 
 # Arquitetura — Autenticação com o usuário do WinThor
@@ -417,7 +426,7 @@ Todas exigem o token (`JwtAuthGuard`), menos o login e a saúde. Na tela, a sess
 fica na aba (`sessionStorage`); token vencido (401) volta para a entrada.
 
 ====================================================================================================
-DOCUMENTO 05/23: 01_ARQUITETURA/DECISOES.md
+DOCUMENTO 05/24: 01_ARQUITETURA/DECISOES.md
 ====================================================================================================
 
 # Arquitetura — Decisões
@@ -478,7 +487,7 @@ custo com o frete em dólar sem converter: replicar (hoje) ou corrigir (avisar o
 ```
 
 ====================================================================================================
-DOCUMENTO 06/23: 02_FLUXOS/PREVIA_DOS_LASTS.md
+DOCUMENTO 06/24: 02_FLUXOS/PREVIA_DOS_LASTS.md
 ====================================================================================================
 
 # Fluxo — Prévia dos LASTs
@@ -595,7 +604,7 @@ camposParaPreencher   o que a tela precisa coletar (filial, fornecedor, comprado
 ```
 
 ====================================================================================================
-DOCUMENTO 07/23: 02_FLUXOS/CALCULO_DO_PEDIDO.md
+DOCUMENTO 07/24: 02_FLUXOS/CALCULO_DO_PEDIDO.md
 ====================================================================================================
 
 # Fluxo — Cálculo do 1º pedido do master
@@ -680,7 +689,7 @@ se o AFRMM é digitado ou calculado. **Um trace de um lançamento com despesas
 responde.**
 
 ====================================================================================================
-DOCUMENTO 08/23: 02_FLUXOS/GRAVACAO_NA_3010.md
+DOCUMENTO 08/24: 02_FLUXOS/GRAVACAO_NA_3010.md
 ====================================================================================================
 
 # Fluxo — Gravação do 1º pedido do master na 3010
@@ -818,7 +827,7 @@ desfazer          previsto (só sem entrada, QTENTREGUE = 0), não implementado
 ```
 
 ====================================================================================================
-DOCUMENTO 09/23: 02_FLUXOS/TELA_DE_CONFERENCIA.md
+DOCUMENTO 09/24: 02_FLUXOS/TELA_DE_CONFERENCIA.md
 ====================================================================================================
 
 # Fluxo — Tela de conferência (Angular, pasta `web/`)
@@ -900,7 +909,7 @@ e "pronto"; a faixa de segurança amarela e preta **só** onde há pendência. T
 Barlow (a normal no texto, a condensada nos títulos).
 
 ====================================================================================================
-DOCUMENTO 10/23: 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
+DOCUMENTO 10/24: 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
 ====================================================================================================
 
 # Validação — Evidências do trace da 3010 e do banco
@@ -996,8 +1005,197 @@ A **conta final** é feita dentro da 3010 e os parâmetros (`:PRAZOENTREGA`,
 mesma hora, rodar a consulta para os itens e achar a fórmula que dá o valor
 gravado (como o 2.20 fez com o custo).
 
+O patch **0055** prepara o item **2.24** exatamente para essa rodada. Ele recebe
+`NUMPED_QTSUGESTAO`, exige que o pedido tenha `ROTINALANC = 3010`, lê os valores
+gravados e os dados atuais de estoque/giro/pendência, usa
+`PCFORNEC.PRAZOENTREGA` e `PCPRODUT.TEMREPOS` como candidatos iniciais e infere
+`QTVEZES` ao contrário. Isso ainda é **procedimento de descoberta**, não resultado
+validado. Roteiro detalhado: `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+
 ====================================================================================================
-DOCUMENTO 11/23: 03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
+DOCUMENTO 11/24: 03_VALIDACOES/ROTEIRO_QTSUGESTAO.md
+====================================================================================================
+
+# Validação — roteiro da QTSUGESTAO da rotina 3010
+
+**Natureza:** procedimento de descoberta preparado; ainda sem resultado real
+**Data de referência:** 2026-09-28
+**Código que prepara o item:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055)
+**Bloqueio atual:** produção continua bloqueada; a aplicação continua gravando `QTSUGESTAO = 0` até esta conta ser fechada por evidência
+
+---
+
+## 1. Objetivo
+
+Descobrir e confirmar, com um pedido **lançado manualmente pela própria 3010** na
+base TESTE, a conta final que a rotina usa para gravar `PCITEM.QTSUGESTAO`.
+
+O trace já mostrou a estrutura da sugestão, mas cortou os valores dos parâmetros
+de prazo e do fator `QTVEZES`. Por isso este roteiro não transforma a hipótese em
+regra: ele lê o resultado que a 3010 gravou e tenta reconstruir a conta para cada
+item.
+
+## 2. O que já é evidência do trace
+
+```text
+ESTOQUE        = PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
+QTGIRODIA      = giro diário (ESTCONSOLIDADO)
+M_ESTIDEAL     = QTGIRODIA × (prazo de entrega + tempo de reposição) × QTVEZES
+QTPENDENTE     entra quando PCFILIAL.CONSIDERAESTPENDSUGCOMPRA = 'S'
+QTMINSUGCOMPRA e MULTIPLOCOMPRAS participam do caminho da sugestão
+```
+
+No pedido do trace, o produto 9018 ficou com `QTSUGESTAO = -2316`. Isso mostra
+que a 3010 aceita sugestão negativa; não autoriza, sozinho, concluir toda a
+fórmula.
+
+## 3. Hipótese que o item 2.24 testa
+
+Para cada item:
+
+```text
+base = QTGIRODIA × (PRAZOENTREGA + TEMREPOS)
+
+se CONSIDERAESTPENDSUGCOMPRA = 'S':
+    QTSUGESTAO = base × QTVEZES - ESTOQUE - QTPENDENTE
+
+senão:
+    QTSUGESTAO = base × QTVEZES - ESTOQUE
+```
+
+Para não chutar `QTVEZES`, o roteiro resolve a conta ao contrário:
+
+```text
+sem pendente: QTVEZES = (QTSUGESTAO + ESTOQUE) / base
+com pendente: QTVEZES = (QTSUGESTAO + ESTOQUE + QTPENDENTE) / base
+```
+
+Ele agrupa os fatores inferidos com quatro casas **apenas para encontrar o grupo
+mais comum**; ao recalcular a sugestão usa o valor real inferido, sem limitar a
+quatro casas.
+
+Os candidatos usados nesta primeira rodada são `PCFORNEC.PRAZOENTREGA` para o
+prazo do fornecedor e `PCPRODUT.TEMREPOS` para o tempo de reposição. Isso é
+hipótese operacional baseada no caminho já levantado e precisa ser confirmada
+pelo resultado. Se a conta não fechar, uma das primeiras coisas a investigar é
+se a 3010 usa algum prazo substituto/específico do item.
+
+## 4. Como gerar o pedido de referência
+
+Na base TESTE:
+
+1. abrir a rotina 3010;
+2. lançar manualmente um pedido de compra normal, pelo caminho que o time usa;
+3. preferir **2 ou mais produtos**, para que um fator comum possa ser testado;
+4. se possível, incluir produtos com `QTMINSUGCOMPRA` ou `MULTIPLOCOMPRAS`
+   preenchidos, pois isso ajuda a revelar ajuste posterior à conta-base;
+5. gravar o pedido e anotar o `NUMPED`;
+6. rodar o item 2.24 logo em seguida, porque estoque, pendência e giro são dados
+   vivos e podem mudar.
+
+Não usar para essa evidência um pedido criado pela aplicação: precisamos observar
+o resultado da **3010**, que é justamente a referência a reproduzir.
+
+## 5. Como rodar
+
+O `.env` deve continuar apontando para a base TESTE. O item é somente leitura e
+usa as mesmas travas do restante do roteiro de homologação.
+
+```bash
+cd ~/ww/pedido-3010/api
+NUMPED_QTSUGESTAO=<NUMPED> API_URL=nao npm run homologacao
+```
+
+`API_URL=nao` evita os testes HTTP e deixa esta rodada focada no banco. Não é
+necessário ligar a API para o item 2.24.
+
+Sem `NUMPED_QTSUGESTAO`, o 2.24 aparece como `pulado` e o restante do roteiro
+continua funcionando como antes.
+
+## 6. O que o 2.24 registra
+
+Do pedido e de cada item:
+
+```text
+NUMPED e ROTINALANC
+CODFILIAL e CODFORNEC
+CODPROD
+QTPEDIDA
+QTSUGESTAO gravada pela 3010
+ESTOQUE disponível atual
+QTGIRODIA
+QTPENDENTE
+PCFILIAL.CONSIDERAESTPENDSUGCOMPRA
+PCFORNEC.PRAZOENTREGA
+PCPRODUT.TEMREPOS
+QTMINSUGCOMPRA e MULTIPLOCOMPRAS do PCITEM e do cadastro atual
+QTVEZES inferida sem e com pendente
+QTVEZES escolhida conforme a regra da filial
+QTVEZES mais comum entre os itens
+valor recalculado pela conta-base e diferença para o gravado
+```
+
+O roteiro também recusa como referência um número cujo `ROTINALANC` não seja
+`3010`.
+
+## 7. Como interpretar o relatório
+
+### Caso A — fecha limpo
+
+Exemplo de saída esperada:
+
+```text
+QTVEZES inferida mais comum: 1 em 4/4 item(ns)
+conta comum reproduz 4/4
+```
+
+Isso é evidência forte de que a conta-base e o tratamento de pendência estão
+corretos para aquele cenário. Ainda assim, antes de codificar a regra de
+produção, conferir os campos de mínimo/múltiplo e registrar a rodada.
+
+### Caso B — a maioria fecha, alguns itens não
+
+Olhar primeiro nos itens que destoaram:
+
+- `QTMINSUGCOMPRA`;
+- `MULTIPLOCOMPRAS`;
+- diferença entre os valores gravados no `PCITEM` e os valores atuais do
+  `PCPRODUT`;
+- prazo/tempo de reposição aplicável ao item.
+
+Se os divergentes forem justamente os que têm mínimo ou múltiplo, a próxima
+etapa é descobrir a ordem e o arredondamento desse ajuste antes de mexer na
+gravação da aplicação.
+
+### Caso C — o fator muda de item para item
+
+Não concluir que `QTVEZES` é variável por produto sem evidência adicional.
+Primeiro conferir se o prazo usado pela 3010 é realmente
+`PCFORNEC.PRAZOENTREGA + PCPRODUT.TEMREPOS` e se estoque/pendente não mudaram
+entre a gravação e a execução do roteiro.
+
+### Caso D — `QTGIRODIA = 0` ou dias-base = 0
+
+Não há como inferir `QTVEZES` por divisão nesse item. Ele permanece no detalhe,
+mas não deve ser usado para fechar o fator comum.
+
+## 8. Critério para liberar a implementação
+
+Não basta um único produto bater. Para trocar o `QTSUGESTAO = 0` provisório da
+aplicação por um cálculo real, registrar pelo menos uma rodada com pedido criado
+na 3010 e **vários itens**, e explicar qualquer divergência relevante —
+principalmente quando houver mínimo ou múltiplo.
+
+Depois disso:
+
+1. registrar o relatório em `VALIDACAO_HOMOLOGACAO_RODADAS.md`;
+2. criar teste de regressão com os valores reais observados;
+3. implementar a regra na gravação;
+4. repetir a conferência contra a 3010;
+5. só então reconsiderar o gate de produção.
+
+====================================================================================================
+DOCUMENTO 12/24: 03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
 ====================================================================================================
 
 # Validação — Rodadas de homologação (MIMO-HOMOLOG, base TESTE)
@@ -1560,7 +1758,7 @@ e **a prévia com um LAST de verdade**:
 ---
 
 ====================================================================================================
-DOCUMENTO 12/23: 03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
+DOCUMENTO 13/24: 03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
 ====================================================================================================
 
 # Validação — Template × trace da 3010 e o teste de ouro da montagem
@@ -1643,7 +1841,7 @@ do Oracle, que só tira espaço, e essas invoices escapavam; corrigido (patch
 0040). A gravação grava a invoice sem espaço em branco nas pontas.
 
 ====================================================================================================
-DOCUMENTO 13/23: 03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
+DOCUMENTO 14/24: 03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
 ====================================================================================================
 
 # Validação — Primeiro pedido gravado pela aplicação (11858)
@@ -1723,7 +1921,7 @@ O 11858 foi gravado **antes** da correção do peso (patch 0049): o 15710 foi co
 O pedido fica na base como referência.
 
 ====================================================================================================
-DOCUMENTO 14/23: 03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
+DOCUMENTO 15/24: 03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
 ====================================================================================================
 
 # Validação — Time da importação com 3 LASTs da semana (25/09)
@@ -1840,7 +2038,7 @@ masters     a partir de 1050/0426
 ```
 
 ====================================================================================================
-DOCUMENTO 15/23: 04_CONTRATOS/CONTRATO_COMEX_API.md
+DOCUMENTO 16/24: 04_CONTRATOS/CONTRATO_COMEX_API.md
 ====================================================================================================
 
 # Contrato — pedido-3010 com o comex-api
@@ -1914,7 +2112,7 @@ processo.erro                pendência LEITURA_FALHOU no pedido daquele arquivo
 ```
 
 ====================================================================================================
-DOCUMENTO 16/23: 04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
+DOCUMENTO 17/24: 04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
 ====================================================================================================
 
 # Contrato — Rotas da API pedido-3010
@@ -1979,7 +2177,7 @@ Resposta por arquivo: `02_FLUXOS/PREVIA_DOS_LASTS.md` (seção 7). `gravacaoAtiv
 diz à tela se a chave está ligada.
 
 ====================================================================================================
-DOCUMENTO 17/23: 04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
+DOCUMENTO 18/24: 04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
 ====================================================================================================
 
 # Contrato — As 309 colunas que a 3010 grava (PCITEM e PCPEDIDO)
@@ -2316,7 +2514,7 @@ do corte, que só o template tem.
 | 136 | `DEDUZIRICMSDIFBASEICMSATECIP` | — | 'S' | 'S' · PCPEDIDO | só template |
 
 ====================================================================================================
-DOCUMENTO 18/23: 05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
+DOCUMENTO 19/24: 05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
 ====================================================================================================
 
 # Operação — Configuração e execução
@@ -2432,7 +2630,7 @@ Arquivo baixado de novo com o mesmo nome vira `NOME (1).md` no Windows:
 para pegar o mais novo, `ls -t "$D"/NOME*.md | head -1`.
 
 ====================================================================================================
-DOCUMENTO 19/23: 05_OPERACAO/ROTEIRO_HOMOLOGACAO.md
+DOCUMENTO 20/24: 05_OPERACAO/ROTEIRO_HOMOLOGACAO.md
 ====================================================================================================
 
 # Operação — Roteiro de conferência na MIMO-HOMOLOG
@@ -2511,6 +2709,7 @@ tira), mas leva NUMPED, CODPROD, custos e percentuais da homologação.
 | `TOKEN=...` | usar um token do Swagger no lugar de usuário e senha | — |
 | `FILIAL` `FORNECEDOR` `PAIS` `PORTO` `PRODUTO` `MOEDA` | outro caso para os itens 1.3, 1.9, 2.13 e 3.5 (`PORTO` é o de **nacionalização**) | 4, 15, 1600, 1, 9018, 220 |
 | `INVOICE_REPETIDA` | outro caso para o item 2.12 | 26MCS415F |
+| `NUMPED_QTSUGESTAO` | item 2.24: pedido lançado manualmente pela 3010 cuja QTSUGESTAO será reconstruída | pula |
 | `PEDIDOS_COMPARAR` | quantos pedidos no item 2.14 | 20 |
 | `TRANSACAO_SOMENTE_LEITURA=N` | só se aparecer ORA-01456 em algum item (alguma função do WinThor escrevendo); a trava do SELECT continua | S |
 
@@ -2557,12 +2756,25 @@ Situação: **ok** confere · **DIFERENTE** não confere · **ERRO** não rodou
 | 2.21 | Cada pedido comparado: 1º ou 2º do master (NUMPEDMASTERORIGEM), se já teve entrada, se o VLTOTAL é o valor da entrada (VLENTREGUE) e se o II mudou em relação ao 1º | Pedido com frete que é 1º pedido: aí o frete importa para a aplicação, que só cria o 1º |
 | 2.22 | VLTOTAL: formas de arredondar (parcela × QT, item × QT, soma no fim, truncado, parcela antes do × QT) com os valores GRAVADOS, em cada 1º pedido | Só registro: a forma que bate em todos é a do cálculo; se for outra, o cálculo muda com teste |
 | 2.23 | Como a 3010 gravou em 2026 os campos do cabeçalho que a tela ainda não pede (frete, vencimento, embalagem, % a prazo, datas previstas, fornecedores fabricante e produtor, proforma, países) e o tamanho das colunas OBS | Só registro: decide se a tela ganha o campo ou se a gravação deduz |
+| 2.24 | Com `NUMPED_QTSUGESTAO`: exige pedido da rotina 3010; lê QTSUGESTAO, estoque, giro, pendência, prazo de entrega, tempo de reposição, mínimo e múltiplo; infere QTVEZES com/sem pendente e testa o fator comum contra todos os itens | **Info**, até existir rodada real. Se não fechar, conferir primeiro mínimo/múltiplo, prazo usado e se estoque/pendente mudaram. Ver `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md` |
 | 3.1 | `/saude` | A API não está no ar ou não vê o banco |
 | 3.2 | Login WinThor | Usuário fora do setor 18, senha errada, ou a consulta do login não bate com esta base · se pular, diz qual variável faltou |
 | 3.3 | `/cadastros/filiais` com a filial 4 | PCLIB do usuário |
 | 3.4 | `/cadastros/cotacao` pelo caminho inteiro | Igual ao 2.7, agora passando pelo DTO |
 | 3.5 | `/cadastros/impostos` pelo caminho inteiro | Igual ao 2.13 pela rota |
 | 3.6 | `/previa` com um LAST | Só com `PLANILHA=` apontando para um arquivo que existe e o comex-api no ar. Se não der 200, mostra a mensagem da API (ex.: o comex recusou a leitura) |
+
+### Rodada focada da QTSUGESTAO
+
+Depois de lançar um pedido manualmente na 3010 da TESTE:
+
+```bash
+cd ~/ww/pedido-3010/api
+NUMPED_QTSUGESTAO=<NUMPED> API_URL=nao npm run homologacao
+```
+
+O critério de interpretação e as hipóteses que ainda precisam de evidência estão
+em `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ---
 
@@ -2576,7 +2788,7 @@ o que já existe: `PLANILHAS_DIR=... npx jest --config ./test/jest-e2e.json`
 (05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).
 
 ====================================================================================================
-DOCUMENTO 20/23: 05_OPERACAO/BASE_TESTE.md
+DOCUMENTO 21/24: 05_OPERACAO/BASE_TESTE.md
 ====================================================================================================
 
 # Operação — Base TESTE (MIMO-HOMOLOG)
@@ -2703,7 +2915,7 @@ deixou **12 itens órfãos**; foram apagados depois com os gatilhos desligados.
 Sempre apague o PCITEM **antes** e confira os dois números antes do COMMIT.
 
 ====================================================================================================
-DOCUMENTO 21/23: 05_OPERACAO/SERVIDOR_E_PUBLICACAO.md
+DOCUMENTO 22/24: 05_OPERACAO/SERVIDOR_E_PUBLICACAO.md
 ====================================================================================================
 
 # Operação — Servidor e publicação
@@ -2790,10 +3002,22 @@ push em master com CI verde
 ```
 
 ====================================================================================================
-DOCUMENTO 22/23: CHANGELOG.md
+DOCUMENTO 23/24: CHANGELOG.md
 ====================================================================================================
 
 # Changelog — Documentação do pedido-3010
+
+## 2026-09-28 — Roteiro de descoberta da QTSUGESTAO (0055)
+
+- Preparado o item 2.24 do roteiro, acionado por `NUMPED_QTSUGESTAO`, para um
+  pedido lançado manualmente pela 3010 na TESTE.
+- O item é somente leitura: coleta a QTSUGESTAO gravada, estoque, giro, pendência,
+  prazo de entrega, tempo de reposição, mínimo e múltiplo, infere `QTVEZES` com e
+  sem pendente e testa um fator comum em todos os itens.
+- A fórmula permanece **hipótese** até uma rodada real; a aplicação continua com
+  `QTSUGESTAO = 0` provisório e a produção continua bloqueada.
+- Procedimento e critério de aceitação em
+  `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ## 2026-09-28 — Repositório documental próprio
 
@@ -2872,7 +3096,7 @@ DOCUMENTO 22/23: CHANGELOG.md
   regra código × descrição, cadastros.
 
 ====================================================================================================
-DOCUMENTO 23/23: README.md
+DOCUMENTO 24/24: README.md
 ====================================================================================================
 
 # Documentação — pedido-3010 (pedido master de importação na rotina 3010)
@@ -2880,8 +3104,8 @@ DOCUMENTO 23/23: README.md
 **Projeto:** `pedido-3010`
 **Branch acompanhada:** `master`
 **Data de referência:** 2026-09-28
-**HEAD acompanhado:** `8553401 docs: aviso de peso acima de 10%`
-**HEAD remoto acompanhado:** `origin/master` em `8553401`
+**HEAD acompanhado:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055 preparado)
+**HEAD remoto acompanhado:** `origin/master` em `20fe04e` (0055 ainda não aplicado/publicado)
 **Situação do checkpoint:** gravação do 1º pedido validada na homologação (base TESTE); produção bloqueada até a QTSUGESTAO ser conferida
 **Serviços consumidos:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor
 
@@ -2994,17 +3218,18 @@ Leia nesta ordem:
 8. `02_FLUXOS/GRAVACAO_NA_3010.md`
 9. `02_FLUXOS/TELA_DE_CONFERENCIA.md`
 10. `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
-11. `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
-12. `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
-13. `03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
-14. `03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
-15. `04_CONTRATOS/CONTRATO_COMEX_API.md`
-16. `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
-17. `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
-18. `05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
-19. `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
-20. `05_OPERACAO/BASE_TESTE.md`
-21. `05_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
+11. `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
+12. `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
+13. `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
+14. `03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
+15. `03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
+16. `04_CONTRATOS/CONTRATO_COMEX_API.md`
+17. `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
+18. `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
+19. `05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
+20. `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
+21. `05_OPERACAO/BASE_TESTE.md`
+22. `05_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
 
 `CHANGELOG.md` registra a evolução documental.
 

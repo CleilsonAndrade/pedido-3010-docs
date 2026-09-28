@@ -4,8 +4,8 @@
 **Data de referência:** 2026-09-28
 **Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
 **Branch:** `master`
-**HEAD atual:** `8553401 docs: aviso de peso acima de 10%`
-**Remoto acompanhado:** `origin/master` em `8553401`
+**HEAD acompanhado:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055 preparado)
+**Remoto acompanhado:** `origin/master` em `20fe04e` (0055 ainda não aplicado/publicado)
 **Estado:** etapa 3 (gravação do 1º pedido) validada na homologação; produção **bloqueada** (`GRAVACAO_3010_ATIVA=N`) até a QTSUGESTAO ser conferida
 **Serviços:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor (base TESTE na homologação)
 
@@ -83,8 +83,9 @@ peso e item repetido       regras novas cobertas por teste; reteste do time pend
 
 ## 2. Patches
 
-Aplicados em ordem com `git am` sobre o pacote original; todos no GitHub
-(`origin/master` em `8553401` até o 0053; o 0054 é aplicado junto com a criação deste repositório).
+Aplicados em ordem com `git am` sobre o pacote original. O GitHub está em
+`origin/master = 20fe04e` com o 0054. O **0055 está preparado neste checkpoint**,
+mas ainda precisa ser aplicado/publicado na máquina em uso.
 
 ### Etapa 1 e homologação: regras, prévia, impostos e o roteiro (23/09)
 
@@ -171,6 +172,14 @@ Aplicados em ordem com `git am` sobre o pacote original; todos no GitHub
       (+ git rm dos 4 documentos antigos de docs/, fora do patch)
 ```
 
+### Fechamento da QTSUGESTAO (28/09)
+
+```text
+0055  feat: roteiro 2.24 recebe NUMPED de pedido da 3010, lê estoque/giro/prazos/
+      pendência/mínimo/múltiplo e infere a QTVEZES para testar a conta gravada
+      (somente leitura; não muda a QTSUGESTAO da aplicação)
+```
+
 Fora da sequência: `comex-api-rota-leitura.patch` e
 `comex-api-senha-fora-do-teste.patch`, aplicados no comex-api
 (`04_CONTRATOS/CONTRATO_COMEX_API.md`).
@@ -202,9 +211,9 @@ Roteiros: `05_OPERACAO/BASE_TESTE.md`.
 ## 5. Em aberto
 
 ```text
-QTSUGESTAO        decidido calcular como a 3010; a conta não aparece no trace. Conferir
-                  lançando um pedido PELA 3010 na TESTE, com um item do roteiro lendo
-                  estoque e giro na mesma hora. É o que libera a produção.
+QTSUGESTAO        item 2.24 preparado no patch 0055. Falta lançar um pedido PELA 3010
+                  na TESTE e rodar `NUMPED_QTSUGESTAO=<n> API_URL=nao npm run homologacao`.
+                  A conta continua hipótese até essa evidência; é o que bloqueia produção.
 2º pedido         qual ação da 3010 o gera e por que o VLTOTAL muda (não bloqueia)
 frete e despesas  onde a 3010 guarda os totais, em que moeda se digita o frete, se o
                   AFRMM é digitado: precisa do trace de um lançamento com despesas
@@ -223,8 +232,8 @@ backups do .40    teste de restauração pendente; MSSRV005 no Ubuntu 18.04
 ```text
 1. reteste do time com os 3 LASTs (26MIW185F, 26MOC267F, 26MSR296F) no ambiente novo
    de teste; conferir PJ10PCM numa linha e os pesos do LAST (VALIDACAO_TIME, seção 7)
-2. QTSUGESTAO: preparar o item do roteiro; lançar um pedido pela 3010 na TESTE; achar
-   a conta
+2. QTSUGESTAO: aplicar o 0055; lançar um pedido pela 3010 na TESTE; rodar o item 2.24
+   com o NUMPED e fechar a conta (`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`)
 3. impostos editáveis na tela
 4. frete e despesas (depois do trace)
 5. publicação da tela

@@ -90,3 +90,10 @@ A **conta final** é feita dentro da 3010 e os parâmetros (`:PRAZOENTREGA`,
 é preciso conferir na prática: lançar um pedido pela 3010 na homologação e, na
 mesma hora, rodar a consulta para os itens e achar a fórmula que dá o valor
 gravado (como o 2.20 fez com o custo).
+
+O patch **0055** prepara o item **2.24** exatamente para essa rodada. Ele recebe
+`NUMPED_QTSUGESTAO`, exige que o pedido tenha `ROTINALANC = 3010`, lê os valores
+gravados e os dados atuais de estoque/giro/pendência, usa
+`PCFORNEC.PRAZOENTREGA` e `PCPRODUT.TEMREPOS` como candidatos iniciais e infere
+`QTVEZES` ao contrário. Isso ainda é **procedimento de descoberta**, não resultado
+validado. Roteiro detalhado: `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.

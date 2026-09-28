@@ -1,5 +1,17 @@
 # Changelog — Documentação do pedido-3010
 
+## 2026-09-28 — Roteiro de descoberta da QTSUGESTAO (0055)
+
+- Preparado o item 2.24 do roteiro, acionado por `NUMPED_QTSUGESTAO`, para um
+  pedido lançado manualmente pela 3010 na TESTE.
+- O item é somente leitura: coleta a QTSUGESTAO gravada, estoque, giro, pendência,
+  prazo de entrega, tempo de reposição, mínimo e múltiplo, infere `QTVEZES` com e
+  sem pendente e testa um fator comum em todos os itens.
+- A fórmula permanece **hipótese** até uma rodada real; a aplicação continua com
+  `QTSUGESTAO = 0` provisório e a produção continua bloqueada.
+- Procedimento e critério de aceitação em
+  `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+
 ## 2026-09-28 — Repositório documental próprio
 
 - A documentação saiu da pasta `docs/` do repositório do código para este
