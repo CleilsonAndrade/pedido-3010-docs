@@ -1,0 +1,3043 @@
+====================================================================================================
+DOCUMENTO 01/23: 00_STATUS/STATUS_PEDIDO_3010.md
+====================================================================================================
+
+# STATUS — pedido-3010
+
+**Status documental:** ATUAL
+**Data de referência:** 2026-09-28
+**Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
+**Branch:** `master`
+**HEAD atual:** `8553401 docs: aviso de peso acima de 10%`
+**Remoto acompanhado:** `origin/master` em `8553401`
+**Estado:** etapa 3 (gravação do 1º pedido) validada na homologação; produção **bloqueada** (`GRAVACAO_3010_ATIVA=N`) até a QTSUGESTAO ser conferida
+**Serviços:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor (base TESTE na homologação)
+
+---
+
+## 0. Para retomar num chat novo
+
+Primeira mensagem (copiar e colar):
+
+> Estou continuando o projeto pedido-3010. A documentação está no repositório
+> `pedido-3010-docs` (anexei). Leia primeiro o `00_STATUS/STATUS_PEDIDO_3010.md`
+> e confirme em poucas linhas o que entendeu antes de propor qualquer coisa.
+>
+> Como eu trabalho: explicações em fluxo passo a passo, com exemplo concreto
+> primeiro. Sem termos em inglês que eu não uso; sou prático. Toda correção de
+> bug começa por um teste de regressão que falha. Decisão com base em evidência
+> (dado real do banco, planilha real), nunca em chute. Comandos git sempre com
+> `--no-pager`.
+>
+> Próximo passo: ver a seção 6 do STATUS.
+
+Anexe, conforme a tarefa:
+
+| Arquivo | Quando precisa |
+|---|---|
+| `pedido-3010` (zip ou acesso ao GitHub) | sempre |
+| `pedido-3010-docs` | sempre |
+| `comex_api` (zip) | se for mexer na leitura das planilhas |
+| LASTs reais | para testar com dado real (têm senha e preço: não versionar) |
+| `Template_-_PEDIDO_MASTER_3010.xlsx` | se for mexer nas colunas da gravação (fora do Git) |
+| `TRACE3010_-_PEDIDO_MASTER_2.log` | se for mexer na sequência da gravação |
+| traces novos da 3010 | frete e despesas; QTSUGESTAO |
+
+<!-- DOC_VALIDACAO_TIME_2026_09_25:start -->
+
+## Checkpoint 2026-09-25 — primeiro pedido gravado e validação do time
+
+A gravação do 1º pedido (sem frete) rodou de ponta a ponta na homologação:
+**NUMPED 11858, master 1049/0426** (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`),
+conferido no banco e na própria 3010.
+
+O time da importação gravou 3 LASTs da semana e apontou dois erros e quatro
+avisos a tirar; corrigidos nos patches 0048 a 0053
+(`03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`):
+
+```text
+peso líquido      PESOLIQDI = N.W. do LAST ÷ quantidade (antes: do cadastro)
+item repetido     uma linha só, preço médio ponderado
+avisos            lista nova que não bloqueia (total FOB, item repetido, sem peso,
+                  peso > 10% do cadastro)
+comex             4 avisos dispensados; total FOB vazio não bloqueia
+```
+
+Os 3 pedidos do time (11859 a 11861) foram apagados da TESTE; **o reteste com o
+código corrigido está pendente**.
+<!-- DOC_VALIDACAO_TIME_2026_09_25:end -->
+
+## 1. Estado atual
+
+```text
+etapa 1   prévia (só leitura)                      FEITA
+etapa 2   tela de conferência, partes 1 a 5        FEITA (impostos editáveis e frete: depois)
+etapa 3   gravação do 1º pedido sem frete          FEITA, validada na homologação
+etapa 4   produção                                 PENDENTE (QTSUGESTAO; publicação da tela)
+```
+
+O que está validado e com que evidência:
+
+```text
+cálculo do 1º pedido       71 de 71 itens iguais à homologação; VLTOTAL a até 2 centavos
+backend contra a TESTE     17ª rodada: 21 ok (login, cadastros, cotação, impostos, prévia)
+gravação                   11858 conferido no banco e na 3010 (valores até a 6ª casa)
+peso e item repetido       regras novas cobertas por teste; reteste do time pendente
+```
+
+## 2. Patches
+
+Aplicados em ordem com `git am` sobre o pacote original; todos no GitHub
+(`origin/master` em `8553401` até o 0053; o 0054 é aplicado junto com a criação deste repositório).
+
+### Etapa 1 e homologação: regras, prévia, impostos e o roteiro (23/09)
+
+```text
+0001  fix: cotação consultava o dia anterior (data ia para o Oracle como Date)
+0002  feat: rota que confere o NUMNEGOCIACAO (regra A) para a tela
+0003  feat: regra A avisa NUMNEGOCIACAO fora de 5 dígitos (602, 266022)
+0004  feat: prévia mostra os pedidos do WinThor com a mesma invoice (decisão D)
+0005  feat: rota dos impostos do cadastro por item (consulta da tela da 3010)
+0006  feat: roteiro de conferência na homologação (npm run homologacao)
+0007  fix: IDPEDIDOMASTER é texto (1046/0426), não número
+0008  feat: roteiro ampliado com a evidência dos DIFERENTES da 1ª rodada
+0009  fix: PERCDESCICMSDIF não trava o item (a tela não copia esse campo)
+0010  fix: tributação usa o porto de NACIONALIZAÇÃO, não o de chegada
+0011  feat: 3ª rodada do roteiro (cálculo item a item, frete, numerador, ambíguos)
+0012  fix: roteiro não cai com coluna LOB no SELECT * do PCPRODUT (item 2.11)
+0013  style: conversão de tipo desnecessária no texto() do roteiro
+```
+
+### Cálculo do 1º pedido: frete, despesas, AFRMM e VLTOTAL (23 e 24/09)
+
+```text
+0014  feat: frete no cálculo (rateio pelo PESOLIQDI e base com o frete por unidade)
+0015  feat: 4ª rodada do roteiro (pedido inteiro com frete, onde fica o frete total)
+0016  fix: roteiro conta todos os itens do 2.17, liga o PCCONTAINERS pelo embarque e diz qual variável faltou
+0017  feat: 5ª rodada do roteiro busca a fórmula do custo e do VLTOTAL com frete (2.20)
+0018  feat: roteiro 2.21, pedido com frete é o 2º pedido do master?
+0019  fix: roteiro busca a fórmula do frete só em 1º pedido e avisa PLANILHA que não existe
+0020  fix: busca do 2.20 não descarta coluna nula em alguns itens; resumo de despesas por pedido
+0021  feat: despesas do pedido no cálculo (aduaneira, outros custos, AFRMM, custo e VLTOTAL da 3010)
+0022  feat: 9ª rodada do roteiro confere despesas pelo cálculo novo; 3.6 mostra a mensagem da API
+0023  fix: AFRMM é total informado (10% do frete sem centavos) e o roteiro estima os totais pelo que reproduz os itens
+0024  fix: roteiro estima o frete em dólar ou em reais; 2.22 testa o arredondamento do VLTOTAL com os valores gravados
+0025  fix: estimativa do frete usa o PERCFRETE e faixa proporcional; VLTOTAL com valores internos no 2.17
+0026  feat: tolerância de 2 centavos no VLTOTAL do 1º pedido (decisão de 24/09)
+0027  feat: rota de cálculo do pedido para a tela (POST /calculo/pedido, sem gravar)
+0028  fix: roteiro 3.6 mostra a mensagem das pendências da prévia
+```
+
+### Etapa 2: a tela, partes 1 a 4 (24 e 25/09)
+
+```text
+0029  feat: tela, parte 1 (Angular em web/): entrar, conferir LASTs e ver cada pedido
+0030  feat: tela, parte 2: escolher o produto na linha trocada e no ambíguo
+0031  fix: tela diz quando o comex recusou a leitura, não que ele não respondeu
+0032  fix: resumo da conferência acompanha as escolhas e fala certo de um pedido só
+0033  feat: pedido já lançado agrupado por master, com o 1º e o 2º pedido
+0034  fix: 1º e 2º pedido do master pela regra do master, não pelo NUMPEDPRINC
+0035  feat: tela, parte 3: os dados do pedido na 3010 (fornecedor, filial, cotação, portos)
+0036  fix: pendência de cotação mostra a moeda como está no cadastro
+0037  feat: tela, parte 4: negociação sugerida e conferida pela regra A enquanto digita
+```
+
+### Etapa 3: o cabeçalho, a montagem, a execução, a rota e a tela da gravação (25/09)
+
+```text
+0038  feat: roteiro 2.23, campos do cabeçalho que a tela ainda não pede
+0039  feat: roteiro 2.23 separa o 1º do 2º pedido e mostra as OBS e as proformas diferentes
+0040  fix: checagem de invoice repetida não deixa escapar invoice gravada com tabulação
+0041  feat: montagem da gravação do 1º pedido (PCPEDIDO e PCITEM como a 3010 grava)
+0042  feat: execução da gravação do 1º pedido numa transação só (ainda sem rota)
+0043  feat: rota POST /gravacao, com o servidor conferindo tudo antes de gravar
+0044  fix: peso líquido da DI como a 3010 (PESOLIQ quando falta o PESOLIQDI)
+0045  feat: prévia devolve o SHA-256 de cada arquivo
+0046  feat: tela, parte 5: gravar na 3010 (datas previstas, proforma, confirmação e resultado)
+0047  fix: numerador travado por outra sessão vira recusa clara, não "Internal server error"
+```
+
+### Validação do time da importação com 3 LASTs (25/09)
+
+```text
+0048  feat: prévia avisa o que não bloqueia (total FOB calculado, item repetido, linha sem peso)
+0049  fix: gravação soma o item repetido e grava o peso líquido do LAST
+0050  feat: tela mostra os avisos da prévia (não impedem gravar)
+0051  fix: aviso do total FOB quando falta a soma do LAST, mesmo com total na invoice
+0052  feat: prévia dispensa os avisos do comex que o time não usa; total FOB vazio não bloqueia
+0053  feat: aviso quando o peso do LAST difere mais de 10% do cadastro
+```
+
+### Documentação (28/09)
+
+```text
+0054  docs: documentação movida para o repositório pedido-3010-docs
+      (+ git rm dos 4 documentos antigos de docs/, fora do patch)
+```
+
+Fora da sequência: `comex-api-rota-leitura.patch` e
+`comex-api-senha-fora-do-teste.patch`, aplicados no comex-api
+(`04_CONTRATOS/CONTRATO_COMEX_API.md`).
+
+## 3. Gate atual (25/09)
+
+```text
+API    unidade          318 / 318 PASS
+API    ponta a ponta    48 PASS, 2 pulados (dependem do comex no ar)
+tela   Vitest           69 / 69 PASS
+tsc, eslint, build      PASS (API e tela)
+regra do teste de regressão   PASS (todos os fix com teste)
+cópia limpa             os 53 patches aplicam sobre o pacote original
+```
+
+## 4. Base TESTE (homologação)
+
+```text
+serviço                  TESTE em 172.20.20.13 (não CDBTST)
+PCNUMERADORIMP 2026      1050 (acertado em 25/09; estava em 406 com 1048 em uso)
+PCCONSUM                 não devolvido
+pedidos da aplicação     11858 (fica, referência); 11859 a 11861 apagados
+pedidos sem item         10483 a 10490 (testes do template) apagados antes
+gatilhos do PCITEM       os 3 ENABLED
+```
+
+Roteiros: `05_OPERACAO/BASE_TESTE.md`.
+
+## 5. Em aberto
+
+```text
+QTSUGESTAO        decidido calcular como a 3010; a conta não aparece no trace. Conferir
+                  lançando um pedido PELA 3010 na TESTE, com um item do roteiro lendo
+                  estoque e giro na mesma hora. É o que libera a produção.
+2º pedido         qual ação da 3010 o gera e por que o VLTOTAL muda (não bloqueia)
+frete e despesas  onde a 3010 guarda os totais, em que moeda se digita o frete, se o
+                  AFRMM é digitado: precisa do trace de um lançamento com despesas
+custo em dólar    a 3010 soma o frete em USD sem converter no CUSTOULTPEDCOMPRA;
+                  replicado; AVISAR O TIME
+comex             levar a regra código × descrição para o comex (hoje só no pedido-3010)
+tela              impostos editáveis; frete e despesas; publicação (servidor que entrega
+                  o dist e repassa /api)
+API               CORS só para o endereço da tela (hoje aceita qualquer origem)
+desfazer          rota prevista (só sem entrada), não implementada
+backups do .40    teste de restauração pendente; MSSRV005 no Ubuntu 18.04
+```
+
+## 6. Próximos passos, em ordem
+
+```text
+1. reteste do time com os 3 LASTs (26MIW185F, 26MOC267F, 26MSR296F) no ambiente novo
+   de teste; conferir PJ10PCM numa linha e os pesos do LAST (VALIDACAO_TIME, seção 7)
+2. QTSUGESTAO: preparar o item do roteiro; lançar um pedido pela 3010 na TESTE; achar
+   a conta
+3. impostos editáveis na tela
+4. frete e despesas (depois do trace)
+5. publicação da tela
+6. produção: GRAVACAO_3010_ATIVA=S por decisão, primeiro para um usuário
+```
+
+## 7. Como trabalhar neste projeto
+
+```text
+correção de bug       começa por um teste de regressão que falha (gancho + CI)
+evidência             dado real do banco, trace ou LAST real; hipótese é dita como hipótese
+toda gravação         precisa de caminho de volta
+explicação            fluxo passo a passo, exemplo concreto primeiro, sem termos em inglês
+git                   comandos com saída sempre com --no-pager
+patches               aplicar só na máquina em uso e fazer push; na outra, pull --rebase
+entrega               todo commit de código vira patch; conferir "commits = patches" e
+                      aplicar os patches numa cópia limpa antes de entregar
+```
+
+====================================================================================================
+DOCUMENTO 02/23: 01_ARQUITETURA/VISAO_GERAL.md
+====================================================================================================
+
+# Arquitetura — Visão Geral
+
+## 1. Componentes
+
+```text
+navegador
+   |
+   v
+tela (Angular 21, web/)            publicação própria; chama /api por caminho relativo
+   |
+   v
+pedido-3010 API (NestJS 11)        porta 3010, PM2, srv-fedora-r450
+   |
+   |-- comex-api (Python)          lê os LASTs: POST /api/v1/import-documents/leitura
+   |
+   `-- Oracle 19c do WinThor       TypeORM, conexão "winthor_conn"
+          |
+          `-- rotina 3010 (Gerenciar Importação [Pedido Máster])
+```
+
+## 2. Módulos da API (`api/src/`)
+
+```text
+auth/                 login WinThor (setor 18), JWT; RolesGuard e JwtAuthGuard
+modules/comex/        cliente HTTP do comex-api (contrato em comex.contrato.ts)
+modules/previa/       POST /previa e as regras (código × descrição, negociação,
+                      itens repetidos, avisos, ocorrências do comex)
+modules/cadastros/    GET /cadastros/* (listas do WinThor, cotação, impostos,
+                      sugestão e validação da negociação)
+modules/winthor/      consultas Oracle SOMENTE LEITURA (de-para, cadastros,
+                      impostos do item, pedidos da invoice)
+modules/calculo/      impostos, custo, rateio de despesas e VLTOTAL; POST /calculo/pedido
+modules/gravacao/     POST /gravacao: montagem das 309 colunas e a execução (a única
+                      parte que escreve)
+modules/saude/        GET /saude (Oracle + comex)
+common/observability/ id de rastreio por requisição, log operacional
+```
+
+## 3. Princípios
+
+```text
+nada grava sem prévia     a gravação refaz a prévia do mesmo arquivo (SHA-256)
+o servidor não confia     cotação, tributação, cadastros e escolhas conferidos de novo
+  na tela                 no servidor antes de gravar
+igual à 3010              colunas, fixos, blocos PL/SQL e efeitos colaterais como a
+                          3010 grava; os dois desvios são de segurança (uma transação
+                          só; não apagar pelo NUMPED)
+só uma rota escreve       POST /gravacao, atrás da chave GRAVACAO_3010_ATIVA; um teste
+                          da documentação falha se outra rota escrever
+datas nunca como Date     sempre texto + TO_DATE(:n, 'YYYY-MM-DD') (o fuso já fez a
+                          cotação cair no dia anterior)
+evidência antes de regra  regra nova sai de dado real do banco, do trace ou de LAST real
+```
+
+## 4. Etapas do projeto
+
+```text
+etapa 1   prévia (só leitura)                                   feita
+etapa 2   tela de conferência                                   partes 1 a 5 feitas
+etapa 3   gravação do 1º pedido na 3010                         feita, validada na homologação
+etapa 4   produção, com a chave ligada por decisão              pendente (QTSUGESTAO)
+```
+
+A arquitetura segue a do `amazon-winthor-integration`: login WinThor, logs com id
+de rastreio, validação do `.env` na subida, PM2.
+
+====================================================================================================
+DOCUMENTO 03/23: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
+====================================================================================================
+
+# Arquitetura — Fronteira comex-api × pedido-3010 × WinThor
+
+## 1. Quem é dono do quê
+
+```text
+comex-api (Python)
+  - ler o .xls com senha (via LibreOffice) e o .xlsx
+  - corrigir peso invertido, embutir encargo, arredondar o preço como na invoice
+  - ocorrências da planilha (campos vazios, conta bancária, pagamento...)
+  - emitir invoice e packing (outro uso, fora do pedido-3010)
+
+pedido-3010 API
+  - de-para código de fábrica -> CODPROD
+  - regras do pedido: código × descrição, negociação (A), invoice repetida (D),
+    itens repetidos, peso
+  - quais ocorrências do comex importam para lançar o pedido
+  - cálculo dos valores do 1º pedido
+  - gravação na 3010 (uma transação só)
+
+WinThor (Oracle)
+  - numeradores (PCCONSUM, PCNUMERADORIMP)
+  - cadastros: produto, fornecedor, tributação, cotação, estoque
+  - blocos PL/SQL que a 3010 roda depois de gravar (copiados do trace)
+  - gatilhos do PCITEM (TRG_PCITEMLOG, TRG_PCITEM_BIN, TRG_PCITEM_PCLISTAFALTA)
+  - o 2º pedido do master (criado pela própria 3010 depois)
+```
+
+## 2. Regras de fronteira
+
+- **O comex não muda por causa do pedido-3010.** Os avisos que o time não usa
+  (contêiner, porto de embarque, cliente, imagem dos dados bancários) saem **na
+  prévia do pedido-3010**; o comex continua avisando para quem gera a invoice.
+- **O pedido-3010 não reimplementa a leitura.** O preço é o arredondado da
+  invoice, que o comex já calcula (decisão: o time lança o que sai na invoice).
+- **O pedido-3010 não reimplementa os blocos da 3010.** Os três blocos PL/SQL
+  (PCFORNEC, PCPRODUT, PCPRODFILIAL) rodam com o mesmo texto do trace e os mesmos
+  parâmetros (NUMPED, filial, matrícula).
+- **Regra que vale para a invoice também** (ex.: código × descrição trocados) hoje
+  está só no pedido-3010; levar para o comex está em aberto.
+
+## 3. Conexões
+
+```text
+tela -> API          /api relativo (proxy no desenvolvimento; repasse no servidor da tela)
+API -> comex         COMEX_API_URL = http://127.0.0.1:8000
+                     (127.0.0.1, não "localhost": o Node tenta IPv6 e falha)
+API -> Oracle        DB_HOST / DB_SERVICE_NAME; homologação = serviço TESTE em 172.20.20.13
+```
+
+====================================================================================================
+DOCUMENTO 04/23: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
+====================================================================================================
+
+# Arquitetura — Autenticação com o usuário do WinThor
+
+## 1. Login
+
+```text
+POST /api/v1/auth/login        { username, password }
+```
+
+```text
+PCEMPR onde
+  USUARIOBD (sem espaço, maiúsculo) = usuário digitado
+  e a senha confere pela função CRYPT do próprio WinThor
+      |
+      v
+setor = AUTH_REQUIRED_COD_SECTION (18 = IMPORTACAO, rotina 528)    senão 403
+área  = AUTH_REQUIRED_AREA_ACTING, só quando configurada
+      |
+      v
+JWT (JWT_SECRET, validade JWT_EXPIRATION_TIME, 60m)
+```
+
+A senha nunca é guardada nem registrada em log.
+
+## 2. O que o token leva
+
+```text
+subject        winthor:<matrícula>
+registration   PCEMPR.MATRICULA  -> CODFUNC, CODFUNCINCLUSAO, CODFUNCALTERACAO,
+                                    PCITEM.CODFUNCALTER, e o :MATRICULA do bloco do PCPRODUT
+username       PCEMPR.USUARIOBD  -> PCPEDIDO.FUNCLANC
+name, roles    exibição e setor/área
+```
+
+As filiais do usuário vêm da PCLIB pela matrícula: a gravação recusa filial que
+não esteja liberada para quem grava.
+
+## 3. Rotas
+
+Todas exigem o token (`JwtAuthGuard`), menos o login e a saúde. Na tela, a sessão
+fica na aba (`sessionStorage`); token vencido (401) volta para a entrada.
+
+====================================================================================================
+DOCUMENTO 05/23: 01_ARQUITETURA/DECISOES.md
+====================================================================================================
+
+# Arquitetura — Decisões
+
+**Natureza:** decisão. Cada linha diz de onde veio: do Cleilson, do time da
+importação, ou de evidência (banco, trace, homologação). Decisão que muda
+comportamento vira teste no repositório do código.
+
+A coluna **#** mantém a numeração original das decisões de 22/09 (1 a 12, A e D),
+citada nos commits e nos testes.
+
+| # | Assunto | Decisão | De onde veio |
+|---|---|---|---|
+| — | Leitura | comex-api em Python, sem reescrever | `PROCESSO_EMISSAO_INVOICE.md` do próprio comex |
+| — | PCOMPRA | Preço **arredondado da invoice**, não o do LAST | Cleilson: o time lança o que sai na invoice |
+| 1 | NUMINVOCE | Invoice do LAST (`26MMC709F`) | 30 últimos pedidos da 3010 |
+| 1 | NUMPROFORMA | Igual ao NUMINVOCE | 25 de 30 iguais; os 5 diferentes são sobra do pedido anterior |
+| 1 | NUMNEGOCIACAO | Ano da invoice + sequência. Sugere maior da 3010 no ano + 1, editável | `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md` |
+| A | Validar negociação | Bloqueia vazio, 0, teste (1111, 11111, 1234...); avisa 4 dígitos, outro tamanho que não 5 (602, 266022) ou ano ≠ invoice | Cleilson |
+| 2 | Planilha x pedido | 1 planilha = 1 pedido | Cleilson |
+| 3 | Impostos | Vêm do cadastro tributário (como a tela), usuário confere | trace |
+| 4 | Efeitos colaterais | Atualizar PCPRODUT, PCFORNEC, PCPRODFILIAL **igual à 3010** | trace + Cleilson |
+| 5 | Fornecedor | Usuário escolhe sempre (a planilha só traz o nome) | Cleilson |
+| 6 | IDPEDIDOMASTER | Numerador PCNUMERADORIMP. Só o 1º pedido (ver `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`). **Texto**, ex.: `1046/0426` | banco + homologação |
+| 7 | VLTOTAL | **Em reais, com impostos**, calculado como a tela | trace: 619.353,60 |
+| 8 | Código x descrição | Avisa e trava até o usuário escolher | Cleilson |
+| 9 | Acesso | Setor 18 (IMPORTACAO) no PCEMPR | print da rotina 528 |
+| 10 | Desfazer | Permitido enquanto não houver entrada | Cleilson |
+| 11 | Testes | Primeiro na MIMO-HOMOLOG (172.20.20.13, serviço TESTE) | Cleilson |
+| 12 | Servidor | srv-fedora-r450, PM2, porta 3010, app em `/home/admin/apps/pedido-3010` | Cleilson |
+| D | Fornecedor + invoice repetidos | Avisa e deixa seguir, **com motivo obrigatório** | Cleilson |
+| — | Pedido sem item | NUNCA grava (a 3010 não mostra master sem PCITEM) | teste do template |
+| — | Backup | CI: `.bundle` do código (30 cópias). CD: versão no ar em `.tar.gz` (10 cópias) antes de trocar; sem backup não troca | Cleilson + scripts do .40 |
+| — | Gravação | Chave `GRAVACAO_3010_ATIVA=N` até a etapa 3 estar aprovada | projeto |
+| — | Tela | Aplicação Angular **separada da API**, não servida pelo NestJS | conversa da etapa 2 |
+| — | Porto da tributação | **Porto de nacionalização** (PCPEDIDO.CODPORTONACIONALIZACAO), não o de chegada | homologação: pedido 9726, 6/6 × 0/6 |
+| — | VLTOTAL do 1º pedido | Regra "parcela × QT a 2 casas"; **diferença de até 2 centavos aceita** (8 de 11 exatos, 3 a 1-2 centavos: arredondamento da própria tela). O contas a pagar nasce do 2º pedido | Cleilson, 24/09 |
+| — | Filial e comprador na tela | Escolhidos a cada pedido; a tela **não** lembra a última escolha (só marca a filial sozinha quando o usuário tem uma só na PCLIB) | Cleilson, 24/09 |
+| — | QTSUGESTAO | **Calcular como a 3010** (a conta final não aparece no trace: conferir na prática, ver `02_FLUXOS/GRAVACAO_NA_3010.md`) | Cleilson, 24/09 |
+| — | PCFORNECFILIAL na gravação | **Igual à 3010**: todos os fornecedores nas filiais que faltam (fora a 99) | Cleilson, 24/09 |
+| — | Motivo da invoice repetida | **Nos dois**: **OBS7** ("Invoice repetida: ...", 100 caracteres; OBS4, OBS6 e OBS7 nunca usadas em 2026) e log da aplicação | Cleilson, 24 e 25/09 |
+| — | Item repetido no LAST | Uma linha só por produto, com a quantidade somada; preços diferentes vão pela **média ponderada** (mantém o total da invoice), com aviso mostrando os preços e a média | Time da importação, 25/09 |
+| — | Peso líquido da DI | **N.W. da linha ÷ quantidade** (o peso da invoice); o cadastro só quando o LAST não traz | Time da importação, 25/09 |
+| — | Avisos do comex na prévia | Saem: contêiner, porto de embarque, cliente, imagem dos dados bancários. Ficam: total FOB (sem bloquear), nome da fábrica, porto de destino, data da invoice | Time da importação, 25/09 |
+| — | Peso do LAST × cadastro | **Aviso** (não bloqueia) quando o peso do LAST difere **mais de 10%** do cadastro, para cima ou para baixo | Time da importação, 25/09 |
+| — | Prioridade da etapa 3 | 1º pedido **sem frete** primeiro, com os impostos do cadastro; edição de impostos e despesas depois | Cleilson, 24/09 |
+| — | Da prévia para a gravação | A tela guarda os arquivos e reenvia no "Gravar" com as escolhas; o servidor lê de novo, confere o SHA-256 e grava | Cleilson, 24/09 |
+| — | Cabeçalho do 1º pedido | FRETE C, TIPOVENC P, TIPOEMBALAGEMPEDIDO V, PERCAPRAZO 100 fixos; fabricante e produtor = fornecedor; países = origem; só a previsão de chegada é digitada | roteiro 2.23, 25/09 |
+| — | Restrições da tela | Produto que a 3010 esconderia na grade (sem tributação, fora de linha, proibido para venda, sem preço na região...) **trava** o item (`podeUsar` false) | Cleilson |
+
+## Decisões que ainda faltam
+
+```text
+qual ação da 3010 gera o 2º pedido do master (não bloqueia o 1º)
+onde a 3010 guarda os totais de frete e despesas (precisa de trace)
+QTSUGESTAO: a conta (decidido calcular como a 3010; falta conferir na prática)
+custo com o frete em dólar sem converter: replicar (hoje) ou corrigir (avisar o time)
+```
+
+====================================================================================================
+DOCUMENTO 06/23: 02_FLUXOS/PREVIA_DOS_LASTS.md
+====================================================================================================
+
+# Fluxo — Prévia dos LASTs
+
+Endpoint:
+
+```text
+POST /api/v1/previa        multipart, campo "arquivos" (até 60 LASTs, .xls/.xlsx)
+```
+
+A prévia **não grava nada** e não guarda estado: não existe número de prévia.
+Ela mostra cada pedido como vai para a 3010 e o que impede gravar.
+
+## 1. Sequência
+
+```text
+LASTs enviados pela tela
+      |
+      v
+comex-api  POST /api/v1/import-documents/leitura
+      |    lê o .xls com senha, corrige peso invertido, embute encargo e
+      |    arredonda o preço como na invoice (o mesmo processamento da invoice)
+      v
+um processo por LAST (1 planilha = 1 pedido)
+      |
+      |-- SHA-256 de cada arquivo (a gravação confere que é o mesmo)
+      |-- ocorrências do comex, menos as dispensadas pelo time
+      |-- de-para código de fábrica -> CODPROD (uma ida ao banco por lote)
+      |-- regra código × descrição
+      |-- pedidos da 3010 com a mesma invoice (decisão D)
+      |-- peso do cadastro dos produtos achados (aviso de peso)
+      v
+PedidoPreviaDto por LAST: itens, pendências, avisos, podeGravar
+```
+
+## 2. De-para (código de fábrica -> CODPROD)
+
+```text
+1. PCPRODUT.CODFAB igual (sem espaço nas pontas, maiúsculo)
+2. CODFAB sem hífen, # e espaço
+sempre com DTEXCLUSAO IS NULL (produto excluído não entra em pedido de compra)
+
+0 candidatos     -> PRODUTO_NAO_ENCONTRADO
+1 candidato      -> resolvido
+2+ candidatos    -> PRODUTO_AMBIGUO (a tela mostra os candidatos para escolher)
+```
+
+## 3. Pendências (bloqueiam: `podeGravar = false`)
+
+```text
+LEITURA_FALHOU               o comex não conseguiu ler a planilha
+BLOQUEIO_COMEX               ocorrência de nível "bloqueio" do comex (fora as dispensadas
+                             e o total FOB vazio)
+CODIGO_DESCRICAO_DIVERGENTE  o código da linha e o começo da descrição apontam produtos
+                             diferentes (ex.: BH26081 com descrição "BH26082 ..."):
+                             a tela mostra os dois lados para escolher
+PRODUTO_AMBIGUO              o código acha mais de um produto
+PRODUTO_NAO_ENCONTRADO       nenhum produto com esse código: resolve no cadastro do WinThor
+```
+
+O que se resolve onde (decisão de 24/09): linha trocada e ambíguo, **na tela**;
+produto não encontrado, sem tributação ou sem peso, **no cadastro do WinThor**
+(e depois solta o mesmo LAST de novo); leitura que falhou e bloqueio do comex,
+**no arquivo**. O LAST não deve ser editado à mão: é documento do fornecedor, e
+o comex emite invoice e packing a partir dele.
+
+## 4. Avisos (não bloqueiam)
+
+```text
+TOTAL_FOB_CALCULADO         o LAST não traz a soma dos valores: a tela somou os itens
+ITEM_REPETIDO               o mesmo produto em mais de uma linha: vai somado numa linha
+                            só (preço médio ponderado quando os preços diferem)
+SEM_PESO_NO_LAST            linha sem N.W.: vai o peso do cadastro
+PESO_DIFERENTE_DO_CADASTRO  peso do LAST difere mais de 10% do cadastro (para cima ou
+                            para baixo); só em linha com produto definido e cadastro
+                            com peso
+```
+
+A regra dos itens repetidos é **a mesma** na prévia (para avisar) e na gravação
+(para somar): `api/src/modules/previa/regras/itens-repetidos.regra.ts`.
+
+## 5. Ocorrências do comex
+
+Passam para a tela em `ocorrenciasComex`, **menos** as que o time dispensou
+(25/09): `cabecalho.vazio` com `cntr_number` (contêiner), `port_loading` (porto de
+embarque) e `to` (cliente), e `conta.ausente` (imagem dos dados bancários). O
+total FOB vazio (`cabecalho.vazio` / `total_fob_price`) aparece, mas não vira
+pendência. Contrato em `04_CONTRATOS/CONTRATO_COMEX_API.md`.
+
+## 6. Invoice já lançada (decisão D)
+
+A prévia devolve `pedidosComMesmaInvoice`: os pedidos da 3010 com a mesma
+invoice, comparada em maiúscula e **sem espaço em branco nas pontas**
+(`REGEXP_REPLACE`, porque há NUMINVOCE gravado com tabulação; o `TRIM` do Oracle
+não tira tabulação). Pedidos cancelados **entram** na comparação.
+
+**Invoice repetida é master repetido, não pedido repetido:** o 2º pedido do
+master (criado pela própria 3010 na nacionalização) não conta como outro
+lançamento. No mesmo master, o menor NUMPED é o 1º; o `NUMPEDPRINC` nem sempre
+vem preenchido e serve só de confirmação.
+
+## 7. O que a prévia devolve (resumo)
+
+```text
+arquivo, sha256, podeGravar, gravacaoAtiva
+cabecalho        invoice, data, fornecedor na planilha, portos, contêiner, totais
+itens            linha, código, descrição, quantidade, preço, total, peso (N.W.),
+                 de-para, divergência
+pendencias       o que bloqueia
+avisos           o que não bloqueia
+ocorrenciasComex
+pedidosComMesmaInvoice
+camposParaPreencher   o que a tela precisa coletar (filial, fornecedor, comprador...)
+```
+
+====================================================================================================
+DOCUMENTO 07/23: 02_FLUXOS/CALCULO_DO_PEDIDO.md
+====================================================================================================
+
+# Fluxo — Cálculo do 1º pedido do master
+
+Os valores de cada PCITEM e o VLTOTAL do PCPEDIDO, calculados como a 3010 grava.
+Regras **deduzidas da homologação e conferidas até a 6ª casa** (rodadas 8ª a
+12ª, `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`); implementadas em
+`api/src/modules/calculo/` e cobertas por teste com pedidos reais como fixture.
+
+```text
+71 de 71 itens iguais à homologação
+VLTOTAL a até 2 centavos (decisão de 24/09: 8 de 11 exatos; 3 a 1-2 centavos,
+        arredondamento da própria tela; o contas a pagar nasce do 2º pedido)
+```
+
+## 1. Sem frete (o que a gravação usa hoje)
+
+Por unidade, com os percentuais do cadastro tributário (exemplo do trace,
+item 9018: 83,74 USD, cotação 5,30):
+
+```text
+base (BASEPISCOFINSLIT)        = PCOMPRA × COT                = 443,822
+II   (VLIMPORTACAO)            = base × %II                   = 88,7644      (20%)
+PIS  (VLCREDPIS)               = base × %PIS                  = 9,320262     (2,1%)
+COFINS (VLCREDCOFINS)          = base × %COFINS               = 42,828823    (9,65%)
+IPI  (VLIPI)                   = (base + II) × %IPI           = 34,618116    (6,5%)
+CUSTOULTPEDCOMPRA / ...SEMST   = base + II                    = 532,5864
+```
+
+```text
+VLTOTAL = Σ arred2(QT × parcela), parcela por parcela: base, II, IPI, PIS, COFINS
+          (11681: 619.353,60; 11858: 84.059,54)
+```
+
+## 2. Com frete e despesas (calculado, ainda não gravado)
+
+Fixture real: 1º pedido 11841 (`api/test/fixtures/homologacao-11841-despesas.json`).
+
+```text
+os totais do pedido são repartidos por PESOLIQDI × QT (por unidade, sem arredondar):
+  frete (USD ou R$) · despesa aduaneira (R$) · outros custos (R$) · AFRMM (R$)
+AFRMM             = o total informado; a sugestão é 10% do frete em reais SEM os centavos
+                    (visto nos 7 pedidos da homologação)
+base              = (PCOMPRA + frete) × COT          -> II, PIS, COFINS, IPI como no item 1
+PERCADUANEIRA, PERCAFRMM = despesa ÷ base × 100
+PERCOUTROSCUSTOS  = outros ÷ (base + II + IPI + PIS + COFINS + aduaneira + AFRMM) × 100
+CUSTOULTPEDCOMPRA = PCOMPRA × COT + II + aduaneira + outros custos + frete EM USD, sem converter
+VLTOTAL           = Σ arred2(QT × parcela): base, II, IPI, PIS, COFINS, aduaneira, AFRMM
+                    (11841: 321.503,27 exato)
+```
+
+**O custo leva o frete em dólar sem converter** e não leva o AFRMM. Parece
+**erro da 3010** (a mesma mistura de moeda do CUSTOREP); a aplicação replica
+(decisão 4: igual à 3010). **Avisar o time**; se decidirem corrigir, é uma linha
+em `calcularValoresItem`.
+
+**Não cobre:** seguro, capatazia, Siscomex (só vistos em 2º pedido), redução de
+base, IPI por valor. Pedido com esses campos vira caso de teste antes.
+
+## 3. Rota
+
+```text
+POST /api/v1/calculo/pedido       calcula, não grava
+```
+
+Recebe os itens (CODPROD, QT, PCOMPRA, percentuais), a cotação e os totais do
+pedido; devolve os valores por item (como o PCITEM), o VLTOTAL e as pendências
+(item sem PESOLIQDI com despesa vira pendência: o rateio recusa repartir sem
+peso). Contrato em `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`.
+
+## 4. Peso (PESOLIQDI)
+
+Desde a validação do time (25/09), o peso de cada item é o **N.W. da linha do
+LAST ÷ quantidade**, 6 casas; o cadastro só quando o LAST não traz o peso. É o
+peso usado no rateio das despesas e o que vai para o PCITEM (e, pelo bloco da
+3010, para o PCPRODUT). Ver `02_FLUXOS/GRAVACAO_NA_3010.md`.
+
+## 5. Em aberto para gravar com frete
+
+Onde a 3010 guarda os totais das despesas, em que moeda o time digita o frete e
+se o AFRMM é digitado ou calculado. **Um trace de um lançamento com despesas
+responde.**
+
+====================================================================================================
+DOCUMENTO 08/23: 02_FLUXOS/GRAVACAO_NA_3010.md
+====================================================================================================
+
+# Fluxo — Gravação do 1º pedido do master na 3010
+
+Endpoint:
+
+```text
+POST /api/v1/gravacao      multipart: "arquivo" (o MESMO LAST da prévia) + "pedido" (JSON)
+```
+
+**Escreve no WinThor.** Só com `GRAVACAO_3010_ATIVA=S`. Escopo atual: **1º
+pedido do master, sem frete**, com os impostos do cadastro. Validado na
+homologação (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`); **não
+publicado em produção** (a QTSUGESTAO ainda é provisória).
+
+## 1. O servidor não confia na tela
+
+```text
+chave GRAVACAO_3010_ATIVA desligada           -> 403, sem ler nada
+SHA-256 do arquivo ≠ o que a prévia devolveu  -> 409 ("não é o mesmo arquivo")
+refaz a prévia do mesmo arquivo
+cada pendência do LAST precisa de escolha válida (linha trocada ou ambíguo,
+  com as mesmas opções da tela)
+confere no WinThor: filial na PCLIB do usuário, fornecedor de importação não
+  bloqueado, comprador, moeda, via, país, porto de chegada e de nacionalização
+lê a COTAÇÃO (moeda + data) e a TRIBUTAÇÃO de cada produto no servidor
+  (a tela não manda valor)
+regra A na negociação; decisão D (motivo obrigatório se o fornecedor já tem
+  master desta invoice)
+qualquer problema                              -> 422 com a LISTA de problemas
+```
+
+## 2. O que a gravação deduz (sem campo na tela)
+
+Evidência: roteiro 2.23 sobre 1.389 pedidos da 3010 em 2026
+(`03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`).
+
+```text
+FRETE, TIPOVENC, TIPOEMBALAGEMPEDIDO, PERCAPRAZO   'C', 'P', 'V', 100 (767 de 775 primeiros pedidos)
+CODFORNECFABRIC, CODFORNECPROD                     = CODFORNEC (1.389 de 1.389)
+CODPAISPROC, CODPAISAQUISICAO                      = país de origem (1.389 de 1.389)
+NUMPROFORMA                                        = invoice por padrão, editável na tela
+DTEMISSAOINVOCE                                    data da invoice do LAST
+DTPREVEMBARQUE                                     = data da invoice, editável
+DTPREVCHEGADA                                      digitada na tela (27 a 41 dias, varia)
+DTPREVENTRADAESTOQUE                               = chegada + 20 dias, editável
+OBS a OBS6                                         vazias na criação
+OBS7                                               "Invoice repetida: <motivo>", 100 caracteres
+                                                   (OBS4, OBS6 e OBS7 nunca usadas em 2026)
+```
+
+Invoice e proforma vão **sem espaço em branco nas pontas** (há NUMINVOCE com
+tabulação na base).
+
+## 3. Itens
+
+```text
+mesmo produto em mais de uma linha   uma linha só: quantidade somada; preços diferentes
+                                     pela média ponderada (total ÷ quantidade, 6 casas)
+PESOLIQDI                            N.W. da linha ÷ quantidade (6 casas); o cadastro
+                                     (PESOLIQDI, ou PESOLIQ) só quando o LAST não traz
+tributação                           da consulta de impostos rodada NA gravação; item que
+                                     ela não libera (podeUsar false) -> 422
+CUSTOULTENT                          PCEST.CUSTOULTENT da filial na hora (NVL 0)
+valores                              02_FLUXOS/CALCULO_DO_PEDIDO.md, sem frete
+QTSUGESTAO                           0, PROVISÓRIO (a conta da 3010 não aparece no trace)
+```
+
+## 4. A montagem
+
+`api/src/modules/gravacao/`: as 136 colunas do PCPEDIDO e as 173 de cada
+PCITEM **na ordem da 3010**, com os fixos gerados do template
+(`colunas-3010.ts`), a montagem pura (`montagem.ts`) e o INSERT com valores
+ligados por posição (`valor-sql.ts`: data como texto em `TO_DATE`, nunca `Date`;
+NULL e SYSDATE no próprio SQL). Contrato das colunas em
+`04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`.
+
+## 5. A execução (uma transação só)
+
+```text
+SELECT PROXNUMPED FROM PCCONSUM FOR UPDATE WAIT 5         -> NUMPED
+UPDATE PCCONSUM  (+1)
+SELECT PROXNUMPEDIDO FROM PCNUMERADORIMP ... FOR UPDATE WAIT 5
+UPDATE PCNUMERADORIMP (+1)                                -> master "número/FFAA" (1049/0426)
+confere: NUMPED já em PCPEDIDO ou PCITEM? master já em PCPEDIDO?  -> recusa, desfaz tudo
+INSERT PCFORNECFILIAL (todos os fornecedores nas filiais que faltam, fora a 99)
+INSERT PCITEM (cada item)  ->  INSERT PCPEDIDO
+os três blocos PL/SQL da 3010, copiados do trace sem mudar uma letra:
+  PCFORNEC (TIPOEMBALAGEMPEDIDO) · PCPRODUT (CUSTOREP, PESOLIQDI...) · PCPRODFILIAL
+COMMIT        (qualquer falha no caminho: ROLLBACK de tudo, inclusive dos numeradores)
+```
+
+**Dois desvios intencionais em relação à 3010** (decisão de projeto):
+
+1. **Uma transação só.** A 3010 confirma em pedaços (numeradores e
+   PCFORNECFILIAL com COMMIT na hora): se algo falha, queima número e deixa
+   fornecedor cadastrado pela metade. A aplicação não.
+2. **Não apaga pelo NUMPED antes de gravar.** A 3010 faz `DELETE FROM PCPEDIDO
+   WHERE NUMPED = :NUMPED` antes do INSERT; com o numerador atrasado (como o da
+   homologação estava) isso apagaria um pedido de verdade. A aplicação confere e
+   **para**.
+
+A trava tem espera limitada: se outra sessão segura o numerador por mais de 5
+segundos (ORA-30006, ou ORA-00054), a gravação recusa com 409 dizendo qual
+numerador está ocupado e que dá para tentar de novo. Visto de verdade em 25/09.
+
+O bloco do PCPRODUT faz `PCPRODUT.PESOLIQDI = PCITEM.PESOLIQDI`: gravar o peso do
+LAST **corrige o cadastro** junto, como quando alguém digita o peso na 3010.
+
+## 6. Respostas
+
+```text
+201   { numped, idPedidoMaster, invoice }
+400   arquivo ou JSON faltando; campo em formato errado (ex.: data não AAAA-MM-DD)
+403   gravação desligada
+409   arquivo diferente do conferido; NUMPED ou master já existentes;
+      numerador ocupado por outra sessão
+422   { message, problemas: [...] }  o que impede gravar
+```
+
+## 7. Log da aplicação
+
+Cada gravação registra NUMPED, master, invoice, fornecedor, quantidade de itens,
+quem gravou e o **motivo completo** da invoice repetida (a OBS7 guarda só 100
+caracteres).
+
+## 8. Limites (ainda não validado)
+
+```text
+QTSUGESTAO        provisória em 0; a produção não liga antes de conferir a conta da 3010
+frete e despesas  calculados (02_FLUXOS/CALCULO_DO_PEDIDO.md), ainda não gravados
+2º pedido         criado pela própria 3010; não se sabe qual ação o gera
+produção          nenhuma gravação feita; a chave fica N até decisão
+desfazer          previsto (só sem entrada, QTENTREGUE = 0), não implementado
+```
+
+====================================================================================================
+DOCUMENTO 09/23: 02_FLUXOS/TELA_DE_CONFERENCIA.md
+====================================================================================================
+
+# Fluxo — Tela de conferência (Angular, pasta `web/`)
+
+A tela do time de importação (setor 18). Aplicação **separada da API**, com
+publicação própria (ainda não publicada). Coberta por 69 testes (Vitest + jsdom,
+sem navegador).
+
+## 1. Caminho do usuário
+
+```text
+entrar (usuário e senha do WinThor)
+   |
+   v
+soltar os LASTs (.xls/.xlsx, até 60)  ->  POST /api/v1/previa
+   |
+   v
+um bloco por pedido:
+   cabeçalho do LAST (fornecedor, data, embarque e destino, contêiner, total FOB)
+   O que falta resolver     pendências, na faixa amarela e preta
+   Avisos                   o que não bloqueia (lista própria, sem a faixa)
+   Invoice já lançada       os pedidos da 3010 agrupados por master (1º e 2º)
+   Escolhas desta conferência
+   Dados do pedido na 3010  (seção 2)
+   Itens do LAST            produto do WinThor, com a descrição do LAST embaixo;
+                            linha trocada ou ambígua mostra as opções para marcar
+   Gravar na 3010           (seção 3)
+```
+
+## 2. Dados do pedido
+
+```text
+fornecedor      buscado pelo nome da planilha (sem "CO., LTD"); marcado sozinho só
+                com nome IDÊNTICO; bloqueado aparece mas não pode ser escolhido
+filial          PCLIB do usuário (marcada se ele só tem uma); não é lembrada
+comprador       escolhido a cada pedido; não é lembrado
+moeda           220 (a do trace)
+data/cotação    hoje, com a cotação do WinThor para a moeda e a data
+incoterm, via   FOB, marítima
+país            do fornecedor
+portos          chegada pelo destino do LAST; nacionalização (o dos impostos)
+                acompanha a chegada até alguém mudar
+negociação      sugestão da API (maior da 3010 no ano + 1) e quem usou a última;
+                regra A enquanto digita (bloqueio vira pendência, aviso junto do campo)
+proforma        = invoice, editável
+datas           embarque = data da invoice; chegada DIGITADA; entrada = chegada + 20
+                (acompanha até alguém mudar)
+motivo          obrigatório quando o fornecedor já tem master desta invoice (decisão D)
+```
+
+## 3. Gravar na 3010
+
+```text
+botão liga só com: bloco sem pendência + gravação ligada + o LAST guardado + SHA-256
+"Gravar na 3010" -> "Isso cria o pedido no WinThor" -> Confirmar e gravar -> Gravando...
+   201   "Gravado na 3010: pedido 11858, master 1049/0426."  (o botão some)
+   422   a lista de problemas que o servidor devolveu
+   409   a mensagem do servidor (arquivo diferente, numerador, trava)
+```
+
+A tela guarda os arquivos do último envio **só em memória**: recarregou a página,
+solte o LAST de novo.
+
+## 4. Decisões de construção
+
+```text
+Angular 21        o 22 exige Node 22.22.3; as máquinas estão em 22.19
+/api relativo     no desenvolvimento, proxy.conf.json repassa para a API; na
+                  publicação, o servidor da tela faz o mesmo (a API não abre CORS)
+fonte hospedada   @fontsource/barlow, sem Google Fonts (rede interna sem internet)
+.npmrc            legacy-peer-deps (o npm 10.9 trava resolvendo o jsdom do Vitest)
+sessão na aba     sessionStorage; senha nunca guardada; 401 volta para a entrada
+datas sem Date    "2026-09-17" vira "17/09/2026" direto no texto; soma de dias em UTC
+                  (a lição do fuso da cotação)
+```
+
+Visual: mesa de conferência. Concreto do cais, tinta, verde de contêiner para ação
+e "pronto"; a faixa de segurança amarela e preta **só** onde há pendência. Tipo:
+Barlow (a normal no texto, a condensada nos títulos).
+
+====================================================================================================
+DOCUMENTO 10/23: 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
+====================================================================================================
+
+# Validação — Evidências do trace da 3010 e do banco
+
+**Natureza:** evidência. O que o trace da própria 3010 (pedido 11681,
+`TRACE3010_-_PEDIDO_MASTER_2.log`) e as consultas no banco mostraram. É a base
+das regras de `02_FLUXOS/`: quando uma regra diz "como a 3010", a prova está
+aqui. Migrado do §5 do antigo `CONTINUAR.md`.
+
+**Sequência da gravação na tela (trace do pedido 11681):**
+```
+1. SELECT ... PCCONSUM FOR UPDATE → UPDATE PROXNUMPED + 1        → COMMIT na hora
+2. SELECT ... PCNUMERADORIMP FOR UPDATE → UPDATE PROXNUMPEDIDO + 1 → COMMIT na hora
+   (a própria 3010 queima número se o usuário desistir)
+3. INSERT PCFORNECFILIAL de TODOS os fornecedores em todas as filiais que
+   faltam (fora a 99), sem parâmetro   → COMMIT na hora  (ver VALIDACAO_HOMOLOGACAO_RODADAS)
+4. transação única:
+   DELETE PCPEDIDO / PCITEM / PCCONTAINERS do NUMPED
+   INSERT PCITEM  →  INSERT PCPEDIDO
+   UPDATE PCFORNEC (TIPOEMBALAGEMPEDIDO)
+   UPDATE PCPRODUT (CUSTOREP = PCOMPRA em dólar, sem converter; datas e usuário)
+   UPDATE PCPRODFILIAL (PERCALTERCUSTOENT)
+   COMMIT
+```
+Há um gatilho `TRG_PCITEMLOG` no PCITEM. O trace corta em 100 valores por
+comando; as colunas que faltaram estão na aba INSERTS do template (136 + 173).
+
+**Cálculos (por unidade, item 9018: 83,74 USD, cotação 5,30):**
+```
+base (BASEPISCOFINSLIT)          = 83,74 × 5,30                 = 443,822
+II   (VLIMPORTACAO)              = base × 20%                   = 88,7644
+PIS  (VLCREDPIS)                 = base × 2,1%                  = 9,320262
+COFINS (VLCREDCOFINS)            = base × 9,65%                 = 42,828823
+IPI  (VLIPI)                     = (base + II) × 6,5%           = 34,618116
+CUSTOULTPEDCOMPRA / ...SEMST     = base + II                    = 532,5864
+VLTOTAL (pedido)                 = Σ qtd × (base+II+IPI+PIS+COFINS) = 619.353,60
+```
+Válido só com frete, seguro, capatazia e demais despesas em 0. O template em
+planilha gravava esses campos como 0, e por isso fica diferente da tela.
+
+**Consultas da tela** (copiadas para `cadastros.oracle.ts`): filiais pela
+PCLIB do usuário, fornecedor de importação (`FORNECIMPORTACAO IN (6,7)` ou
+`REVENDA='X'`), compradores (setor `PCCONSUM.CODSETORCOMPRADOR`), cotação
+(`PCCOTACAOMOEDAC` + `PCCOTACAOMOEDAI` por data), países, portos, vias. A
+consulta grande do item (34 KB, índice 237 do trace) traz os impostos de
+`PCTRIBFIGURA` / `PCEXPISCOFINSITEM` e o custo de `PCEST` da filial do pedido. Copiada em
+`winthor/impostos-item.oracle.ts` (ver VALIDACAO_HOMOLOGACAO_RODADAS).
+
+**Dois pedidos por master (615 masters em 2026):** o 1º é lançado; depois a
+própria 3010 cria o 2º com o mesmo master, mesmos itens e quantidades,
+`PCITEM.NUMPEDMASTERORIGEM = NUMPEDPRINC = 1º pedido` e VLTOTAL diferente.
+Nos dois casos conferidos, o **contas a pagar (PCLANC) nasce no mesmo dia do
+2º pedido**. A aplicação cria só o 1º, com esses dois campos vazios. Não se
+sabe qual ação da 3010 gera o 2º.
+
+**NUMNEGOCIACAO:** sem numerador, sem sequência, sem gatilho (o pacote
+FUNCOESCOMPRAS só copia a coluna). Formato ano + sequência: `25514` para
+`25MIW189F`, `26602` para `26MMC709F`. Controlado numa planilha. Vai para
+PCLANC, PCPREST, PCNFENT e PCMOV (erro chega no financeiro). Uma negociação
+pode cobrir vários pedidos (26492 em 12; 26578 com 4 fornecedores no
+26ALFMIMO-15). Desde agosto: 317 no padrão, 29 com 4 dígitos (padrão de
+outras BUs), 57 vazios, 18 zeros.
+
+**Código x descrição trocados (4 casos em 198 itens, confirmados pela PROCESSOS):**
+26MZC289F linhas 8/9 (BH26081 ↔ BH26082), 26MQS575F linha 15 (PF26264 com
+descrição do CM26266), 26MKP551F linha 5 (CE26142 com descrição do CE26141). A
+invoice gerada pelo comex também carrega o erro — vale pôr a regra no comex.
+
+**Pedidos 11840 / 11841:** mesma invoice 26MCS415F, mesmo fornecedor e mesma
+negociação, com produtos diferentes. O 11841 tem proforma 26MCS400F. Os itens
+do 11840 são idênticos ao 26MCS388F da PROCESSOS. Com os LASTs 388F, 400F e
+415F dá para fechar.
+
+**Rede:** `localhost` no `COMEX_API_URL` faz o Node tentar IPv6 e falhar com o
+comex no ar. Usar `127.0.0.1`.
+
+## QTSUGESTAO no trace (o que se sabe)
+
+A 3010 gravou **−2.316** no 9018 (1.000 pedidas): é "estoque ideal − estoque".
+As variáveis vêm da consulta da sugestão de compra (trace, bloco 224):
+
+```
+ESTOQUE        = PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
+QTGIRODIA      = giro diário (ESTCONSOLIDADO)
+M_ESTIDEAL     = QTGIRODIA × (prazo de entrega + tempo de reposição) × :QTVEZES
+QTPENDENTE     entra só com PCFILIAL.CONSIDERAESTPENDSUGCOMPRA = 'S'
+QTMINSUGCOMPRA, MULTIPLOCOMPRAS
+```
+
+A **conta final** é feita dentro da 3010 e os parâmetros (`:PRAZOENTREGA`,
+`:TEMPOREPOSICAO`, `:QTVEZES`) aparecem cortados no trace. Para calcular igual,
+é preciso conferir na prática: lançar um pedido pela 3010 na homologação e, na
+mesma hora, rodar a consulta para os itens e achar a fórmula que dá o valor
+gravado (como o 2.20 fez com o custo).
+
+====================================================================================================
+DOCUMENTO 11/23: 03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
+====================================================================================================
+
+# Validação — Rodadas de homologação (MIMO-HOMOLOG, base TESTE)
+
+**Natureza:** registro histórico. Cada rodada é o que se observou **naquele
+dia**, com o código daquele dia; não descreve o estado atual (ver
+`00_STATUS/STATUS_PEDIDO_3010.md`). Migrado do §3 do antigo `CONTINUAR.md`,
+com os ponteiros trocados para os documentos deste repositório.
+
+**Como ler:** "Confirmado" é comportamento observado no banco da homologação;
+"CORRIGIDO" é defeito nosso que virou teste de regressão; "Hipótese" é o que
+ainda não tinha evidência, e o texto diz quando uma hipótese caiu.
+
+| Rodada | Data | O que fechou |
+|---|---|---|
+| 1ª a 3ª | 23/09 | Consultas contra o banco real; IDPEDIDOMASTER é texto; CUSTOULTENT do PCEST no 1º pedido; frete rateado por PESOLIQDI × QT |
+| 4ª a 7ª | 24/09 | O frete e as despesas do 1º pedido (a hipótese "frete só no 2º pedido" caiu na 6ª) |
+| 8ª a 12ª | 24/09 | **Cálculo do 1º pedido fechado**: 71 de 71 itens iguais; VLTOTAL a até 2 centavos |
+| 17ª | 24/09 | **Backend inteiro contra a homologação**: login, cadastros, cotação, impostos, prévia com LAST real |
+| 25/09 | 25/09 | Item 2.23 (cabeçalho do 1º pedido); numerador de master acertado; primeiro pedido gravado (ver `VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`) |
+
+---
+
+## Pronto e testado
+
+- **Etapa 1** (prévia, sem gravar nada): login, `POST /previa`, cadastros,
+  sugestão de negociação, saúde, Swagger com o fluxo.
+- **Testes:** 318 de unidade e 50 ponta a ponta (API); 69 da tela (2 deles só rodam com o
+  comex-api no ar e a pasta de planilhas). **Todos rodam no fuso de
+  Brasília** (`test/apoio/fuso-brasilia.js`, globalSetup das duas
+  configurações do Jest), para erro de fuso não passar calado. Um teste
+  falha se alguma rota ficar sem documentação no Swagger, e outro se alguma
+  rota escrever no banco.
+- **comex-api com a rota `/leitura`:** 271 testes passando (266 antigos + 5 novos).
+- **Scripts:** regra de regressão 7/7, backup 19/19, shellcheck sem avisos.
+- **Ensaio com 33 planilhas reais** (13 de set/2026 + 20 LASTs antigos),
+  198 itens: 22 pedidos prontos para gravar, 11 travados (código trocado ou
+  sem de-para, porque o de-para do ensaio veio da planilha do time, parada em
+  06/08).
+
+- **Roteiro de homologação** (`npm run homologacao`, `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`):
+  roda as consultas da APLICAÇÃO contra a base numa transação somente
+  leitura (e recusa o que não for SELECT/WITH) e gera um relatório `.md`
+  com ok / diferente / erro por item. Ensaiado contra banco falso (21
+  testes) e o comando real com driver falso: para em base que não é a
+  172.20.20.13, abre READ ONLY, só consulta, ROLLBACK no fim, relatório
+  sem senha.
+
+## Homologação, 1ª rodada (23/09): só o banco, com a API desligada
+
+Serviço **TESTE** em mimo-homolog, 172.20.20.13 (a documentação antiga dizia CDBTST).
+Resultado: 14 ok · 3 diferente · 2 erro (API desligada) · 6 info · 4 pulado.
+A base é uma cópia recente da produção (pedidos até o 11849, de ~22/09).
+
+**Confirmado:**
+- região padrão da filial 4 = 300 (a hipótese do `:NUMREGIAO` da tela);
+- datas da cotação sem hora; a aplicação trouxe a cotação do dia pedido, e a
+  de 19/07/2026 = 5,30, a do trace;
+- país de origem = procedência = aquisição em todos os pedidos de 2026;
+- 11840/11841: invoice 26MCS415F, fornecedor 15 (HANGZHOU CHOICE TRADE CO.,
+  LTD), negociação 26580, masters **diferentes** (1046/0426 e 1047/0426), o
+  11841 com proforma 26MCS400F. Os testes usam agora esses valores reais;
+- impostos do 9018 = 20 / 6,5 / 2,1 / 9,65, como no trace;
+- 105 de 121 itens dos últimos 20 pedidos com os mesmos percentuais que a
+  tela gravou;
+- de-para: 1.883 de 1.931 iguais à planilha do time, em 2,2 s. Invoice
+  repetida em 18 ms: o `UPPER(TRIM())` sem índice não pesa;
+- parâmetros da tela nesta base: TIPOTRIBENTIMP = F, CON_USATRIBUTACAOPORUF = N;
+- a sugestão de negociação daria 26625 (maior de 26: 26624).
+
+**Erro nosso, CORRIGIDO:** o IDPEDIDOMASTER é **texto** (`1046/0426`). A
+consulta de invoice repetida convertia para número e devolvia `null`
+(teste de regressão em `pedidos-da-invoice.oracle.spec.ts`). Para a etapa 3:
+o master é gerado como texto. Hipótese do formato: sequência / filial com 2
+dígitos + ano com 2 dígitos. O item 1.11 do roteiro mostra por filial.
+
+**Em aberto na 1ª rodada** (o que a 2ª respondeu está na seção seguinte):
+- **PERCDESCICMSDIF trava o item.** A figura do 9018 tem 100 e o PCITEM do
+  trace tem 0, então o item sai `podeUsar` false, até o próprio caso do trace.
+  Hipótese: a tela não copia esse campo, que só pesa quando há ICMS (e
+  PERICM = 0). O item **2.15** compara campo a campo consulta × PCITEM.
+  Só mexer na lista com essa evidência, e com teste.
+- **II 14,4 gravado × 25 no cadastro** em todos os itens dos pedidos 11823 e
+  11849. Hipóteses: o cadastro mudou depois; alguém alterou na tela
+  (decisão 3); ou há um campo que reduz o II e não está na consulta. O item
+  **2.14** traz a emissão, quem lançou e o histórico de cada produto.
+- **Porto:** 1 pedido de 2026 (9726) com chegada 1 ≠ nacionalização 3. O
+  item **2.16** calcula com os dois e diz qual reproduz o PCITEM.
+- **De-para, 48 diferenças.** Parecem erro de digitação da planilha do time
+  (10874 × 10784, 1004 × 10004, 8797 × 8297) e CODFAB duplicado no WinThor
+  (família HTC, que dá "ambíguo" e vira pendência a cada LAST). O item
+  **2.11** traz as duas descrições e os candidatos.
+- **CUSTOULTENT (item 1 dos pontos em aberto (00_STATUS)).** A tela gravou 7 valores diferentes para o
+  9018 na filial 4 em 2026, alternando até no mesmo dia (31/07: 862,09 no
+  11296 e 732,22 no 11342). Não é só o PCEST da filial. O item **1.12**
+  procura cada valor nos custos do PCEST de todas as filiais.
+- **Dado da base:** cotação da moeda 220 com data 30/03/2105 (3,1915).
+  Digitação errada na homologação, e talvez na produção. O item 1.10 lista.
+
+## Homologação, 2ª rodada (23/09): banco e API no ar, sem login
+
+Resultado: 15 ok · 4 diferente · 0 erro · 10 info · 5 pulado. O grupo 3
+parou no login, porque o roteiro rodou sem HOMOLOG_USUARIO/HOMOLOG_SENHA
+naquele terminal. A API respondeu `/saude` com banco e comex no ar.
+
+**Confirmado com evidência:**
+- **Os campos da tributação são cópia do cadastro, com o mesmo nome** (2.15):
+  36 campos batem em 96 de 96 itens recentes, entre eles PERIPI, PERPIS,
+  PERCOFINS, CODSITTRIBPISCOFINS, PERCICMSDIFERIDO, CALCCREDIPI, PERICM,
+  seguro e despesas.
+- **CUSTOULTENT = PCEST.CUSTOULTENT da filial na hora do lançamento** (2.15):
+  95 de 96 itens recentes batem com o PCEST de hoje. Os valores antigos do
+  9018 não aparecem em nenhum custo atual (1.12), o que combina com o PCEST
+  mudando a cada entrada. Resta explicar valores fora de ordem como o do
+  11723. Hipótese: o 2º pedido do master copia o custo do 1º (item 1.14).
+- **Formato do IDPEDIDOMASTER** (1.11): `número/FFAA`, com a filial em 2
+  dígitos e o ano em 2 (`1041/0126` na filial 1, `1046/0426` na filial 4).
+  O número é um só para todas as filiais no ano: 1041, 1046 e 1047 no mesmo
+  dia, em filiais diferentes.
+- **O trace confirma o numerador:** no pedido 11681, a tela fez SELECT e
+  UPDATE no PCNUMERADORIMP do ano e gravou `942/0426`.
+
+**Erros nossos, CORRIGIDOS (com teste de regressão):**
+- **PERCDESCICMSDIF travava todo item.** O cadastro tem 100 e a tela grava 0
+  em 96 de 96 itens: ela não copia. Saiu da lista de "fora do cálculo".
+  Só age sobre ICMS, que o PERICM já guarda. Na gravação: 0, como a tela.
+- **O porto da tributação é o de NACIONALIZAÇÃO** (2.16). No pedido 9726
+  (chegada 1, nacionalização 3), os 6 itens batem com o porto 3 e nenhum com
+  o porto 1. A rota pedia o de chegada. O parâmetro virou
+  `portoNacionalizacao`, e o nome antigo dá 400.
+
+**Para a gravação (etapa 3):** VLIPIPORKG e VLPAUTAIPI ficam vazios no
+PCITEM, como a tela faz, e PERCDESCICMSDIF fica 0.
+
+**Em aberto, com evidência nova. A 3ª rodada do roteiro traz o resto:**
+- **FRETE: o cálculo não cobre, e 70% dos itens recentes têm frete.** Em 68
+  de 96 itens a tela gravou PERCFRETE próprio (11,89 / 11,19 / 19,76 no
+  11849). Não vem do cadastro, que tem 0. É o frete do pedido
+  (PCPEDIDO.VLFRETE) repartido por item, e **não por valor**, porque o
+  percentual muda de item para item. O cálculo só foi conferido com frete 0.
+  O item **2.17** confere o cálculo item a item (sem frete: os 6 valores e o
+  VLTOTAL; com frete: quatro formas de base). O item **2.18** testa o
+  rateio contra cada coluna do PCPRODUT. **A tela e a gravação dependem disso.**
+- **PCNUMERADORIMP da homologação está ATRÁS** dos masters: próximo 406,
+  com masters em uso até 1047. Os masters 399 a 405 são os pedidos de teste
+  do template. Gravar na homologação hoje geraria `406/0426`, que já existe.
+  Na etapa 3, a gravação confere se o master existe e **para** (nunca
+  "conserta" o numerador). Conferir na produção e perguntar por que a
+  homologação está assim (item 1.13).
+- **II 14,4 × 25 no 11849** (18/09, NICOLY.SOARES, 12 itens). O histórico
+  dos outros produtos mostra II mudando no tempo (18 → 20 → 25, e até 0 no
+  11490). O 2.14 passa a trazer o histórico destes produtos primeiro.
+- **Pedidos 11851 a 11857** (ANDREIA.Y): número maior que o do 11849
+  (18/09), mas emissão em 01/08, e os 9 itens estão "sem tributação" hoje.
+  Hipótese: são 2º pedidos de master. O 2.14 passa a mostrar o
+  NUMPEDMASTERORIGEM e o motivo completo.
+- **De-para, 30 ambíguos, 27 da família HTC.** Cada código tem o produto
+  original (`12415 HTC0080-Torn...`) e um duplicado recente com "MP" na
+  descrição (`17639 MP HTC0080-...`, códigos 176xx a 178xx). A planilha do
+  time sempre escolhe o original. O 2.11 passa a procurar a coluna do
+  PCPRODUT que separa os dois (hipótese: IMPORTADO). As 13 diferenças de
+  CODPROD parecem erro de digitação da planilha (10874 × 10784,
+  1004 × 10004), e o banco está certo.
+
+## Homologação, 3ª rodada (23/09): o frete resolvido
+
+Resultado: 14 ok · 5 diferente · 3 erro · 12 info · 4 pulado. O grupo 3 não
+rodou porque a API estava desligada ("fetch failed"). O item 2.11 deu erro no
+próprio roteiro (LOB no `SELECT *` do PCPRODUT), já corrigido com teste.
+
+**O cálculo reproduz a tela, agora com evidência larga:**
+- **Sem frete: 37 de 37 itens** com base, II, PIS, COFINS, IPI e custo
+  iguais aos gravados. Antes era só o 9018 do trace.
+- **VLTOTAL: 4 de 4 pedidos sem frete feitos pela tela** batem. Os 7 "não"
+  eram os 11851 a 11857, que têm **VLTOTAL vazio e porto de nacionalização
+  vazio**. Não parecem lançados pela tela, e o roteiro agora os deixa de fora.
+
+**A regra do frete, deduzida e conferida até a 6ª casa (pedido 11849, 14 itens):**
+```
+frete por unidade = frete total × PESOLIQDI ÷ Σ(PESOLIQDI × QT)          (sem arredondar)
+  VLFRETE   = frete por unidade, 6 casas                        → 14 de 14
+  PERCFRETE = frete por unidade ÷ PCOMPRA × 100, 6 casas        → 14 de 14
+  base      = (PCOMPRA + frete por unidade) × COTACAO           → 68 de 68 na forma; 3 de 3 até a 6ª casa
+  II, PIS, COFINS, IPI: a mesma conta, sobre essa base
+```
+- O rateio é pelo **PCPRODUT.PESOLIQDI × QT**, que explica 9 de 9 pedidos.
+  Valor, quantidade, peso bruto e volume não explicam.
+- **Na base entra o frete sem arredondar.** Com o VLFRETE arredondado, a base
+  erra na 6ª casa. O rateio devolve os dois valores.
+- O frete total está na moeda do pedido (7.100 USD no 11849). **O
+  PCPEDIDO.VLFRETE veio vazio**, então a coluna onde a tela guarda o total
+  ainda não se sabe. O item 2.19 procura no PCPEDIDO e no PCCONTAINERS.
+- **Implementado:** `calculo/frete.calculo.ts` (`ratearFrete`) e o
+  `freteUnitario` em `calcularValoresItem`, com os dados reais do 11849 como
+  teste (`test/fixtures/homologacao-11849-frete.json`). A 4ª rodada confere
+  os pedidos inteiros com frete, VLTOTAL incluído, pelo cálculo novo.
+
+**Item 1 do pontos em aberto (00_STATUS) (CUSTOULTENT), FECHADO:** no 1º pedido do master, a tela grava o
+PCEST.CUSTOULTENT da filial na hora (95 de 96 itens). O **2º pedido copia o
+custo do 1º**: 24 de 24 no 9018 da filial 4 (1.14). O 11723 é 2º do 11254,
+por isso tem 732,22. A aplicação só cria o 1º, então vale o PCEST.
+
+**II 14,4 × 25 (11849 e 11629):** o 8814 teve 14,4 de 2024 a 2025, 25 em junho
+de 2026 e 14,4 de novo em 18/09. O 10582 também voltou a 14,4 num pedido da
+FLAVIA.SILVA em 26/08, com o cadastro em 25. Parece alteração manual na tela,
+o que a decisão 3 permite. Perguntar a quem lançou por que 14,4.
+
+**Numerador:** a homologação continua com próximo 406 e maior master em uso
+1048 (1.13).
+
+## Homologação, 4ª rodada (24/09): o que o frete ainda não explica
+
+Resultado: 15 ok · 6 diferente · 1 erro · 12 info · 5 pulado. O login pulou
+de novo (sem usuário/senha no processo), e o 2.19 caiu porque o PCCONTAINERS
+não tem NUMPED. Os dois estão corrigidos com teste: o PCCONTAINERS liga pelo
+**IDCONTROLEEMBARQUE** (trace, entrada 314), e o 3.2 diz qual variável faltou.
+
+**Confirmado de novo:**
+- sem frete: 28 de 28 itens e VLTOTAL 4 de 4;
+- com frete: base, II, PIS, COFINS, IPI, VLFRETE e PERCFRETE batem pelo
+  cálculo novo, com rateio pelo PESOLIQDI.
+
+**Ainda NÃO bate com frete (a 5ª rodada procura a fórmula, item 2.20):**
+- **CUSTOULTPEDCOMPRA ≠ base + II.** O gravado é menor, e falta perto de
+  79,5% do frete em reais, mas não exato (0,7938 a 0,7977 no 11849). O custo
+  usa outro valor, e o PCITEM tem colunas de custo que o cálculo nunca olhou:
+  VLFRETENFCUSTO, VLAFRMMCUSTO, VLSISCOMEXCUSTO, VLADUANEIRACUSTO,
+  VLCAPATAZIACUSTO, VLOUTROSCUSTOS...
+- **VLTOTAL gravado > calculado** nos 9 pedidos com frete. A sobra dividida
+  pelo frete em USD é **igual entre pedidos do mesmo processo** (11840/11841:
+  1,2212; 11838/11839: 1,1627; 11831 a 11833: 1,1625) e diferente entre
+  processos (11849: 0,4703). Cara de despesa do processo (capatazia, AFRMM,
+  Siscomex...). É hipótese.
+- Erro do roteiro, corrigido: o "38 de 68 iguais" contava pela lista limitada
+  a 30 linhas. Provavelmente nenhum item com frete bate no custo.
+
+**Enquanto isso não fechar:** pedido com frete pode ter os impostos e o VLFRETE
+calculados pela aplicação, mas **não o VLTOTAL nem o custo**. A prévia tem que
+mostrar isso como pendência, e a gravação não grava pedido com frete. A 5ª
+rodada indica que isso nem acontece no 1º pedido (ver abaixo, item 2.21).
+
+## Homologação, 5ª rodada (24/09): a API inteira, e o frete é do 2º pedido
+
+Resultado: 19 ok · 6 diferente · 0 erro · 14 info · 1 pulado.
+
+**API no ar, pelo caminho inteiro, OK:** login WinThor (setor 18) com token;
+`/cadastros/filiais` com 32 filiais, entre elas a 4 (PCLIB do usuário);
+`/cadastros/cotacao` de 15/09 = 5,1696, igual à consulta direta (DTO e
+consulta, a correção do fuso); `/cadastros/impostos` do 9018 = 20 / 6,5 /
+2,1 / 9,65. Falta só o `/previa` com um LAST de verdade (`PLANILHA=`).
+
+**Frete: por que nenhuma fórmula explica o custo e o VLTOTAL** (2.20 sem
+fórmula de 1 ou 2 colunas; 2.17 com a contagem corrigida: 0 de 68 no custo).
+O pedido inteiro do 11849 mostra:
+```
+NUMPEDMASTERORIGEM = NUMPEDPRINC = 10874      → é o 2º PEDIDO do master; o 1º é o 10874
+QTENTREGUE = QTPEDIDA · NUMTRANSENTN 736355   → já teve entrada
+VLTOTAL 381.253,43 · VLENTREGUE 381.253,42    → o VLTOTAL é o valor da entrada
+VLSISCOMEX, VLAFRMM = base × PERCSISCOMEX/PERCAFRMM (8 de 10 exatos)  → despesas da DI
+II 14,4, e o 10874 gravou 25                  → o II da DI
+```
+**Hipótese (REFUTADA na 6ª rodada, ver abaixo):** pedido com frete = 2º pedido, que a própria 3010 cria na
+nacionalização com os valores da DI e da nota de entrada. Custo e VLTOTAL
+vêm da entrada, e não de uma fórmula sobre o pedido. **Se valer para todos, o
+1º pedido (o único que a aplicação cria) não tem frete**, e o cálculo dele já
+está provado (28 de 28 itens, VLTOTAL 4 de 4). O item **2.21** confere nos 13
+pedidos. Nesse caso o `ratearFrete` fica no código, conferido, mas fora da
+prévia e da gravação. Isso também explicaria o II 14,4 do 11849 e do 11629
+(DI, não alteração manual). O 2.19 não achou o frete total no PCPEDIDO nem no
+PCCONTAINERS (vazio para o 11849), e o PCITEM.PESOLIQDI é o do cadastro em 68
+de 68.
+
+## Homologação, 6ª rodada (24/09): o 1º pedido TEM frete
+
+**A hipótese caiu (2.21):** só 2 dos 9 pedidos com frete são 2º pedido
+(11849 do 10874, 11845 do 11677, os dois com entrada e VLTOTAL = VLENTREGUE).
+Os outros 7 (11831 a 11833, 11838 a 11841) são **1º pedido, sem entrada,
+com frete**. Os 4 sem frete são 1º pedido. **O frete importa para a
+aplicação.**
+
+Isso também explica o 2.20 sem fórmula: a busca misturava 1º e 2º pedidos, e
+no 2º pedido custo e VLTOTAL vêm da nota de entrada.
+
+**Nos 1º pedidos com frete (11840 e 11841, os que vieram no detalhe):** base,
+II, PIS, COFINS, IPI, VLFRETE e PERCFRETE batem. Só não batem:
+- **CUSTOULTPEDCOMPRA:** o gravado é menor que base + II. No 11840 faltam
+  exatamente 70,069930 nos dois itens (9988 e 9989), então a diferença não
+  depende do preço;
+- **VLTOTAL:** o gravado é maior. A sobra dividida pelo frete em USD é igual
+  entre pedidos do mesmo processo (11840/11841: 1,2212; 11838/11839: 1,1627;
+  11831 a 11833: 1,1625).
+
+**Roteiro corrigido (com teste):** o 2.20 busca só em 1º pedido, e tenta 3
+colunas de valor quando 1 ou 2 não bastam. O exemplo detalhado passa a ser
+um 1º pedido com frete. O 2.17 separa 1º e 2º pedido. O 3.6 avisa quando o
+arquivo da `PLANILHA` não existe: na rodada foi usado o caminho de exemplo.
+
+## Homologação, 7ª rodada (24/09): as despesas do 1º pedido, deduzidas do 11841
+
+A busca do 2.20 ainda não achou fórmula, mas por um erro do roteiro:
+colunas **nulas** em alguns itens (VLADUANEIRA sem despesa) sumiam da busca
+inteira. Está corrigido com teste (`colunasNumericasEmAlguma`, nula vale 0).
+Com o 1º pedido 11841 inteiro, a conta fechou à mão:
+
+```
+Todas as despesas do pedido são repartidas por PESOLIQDI × QT (mesmo valor por kg em todos os itens):
+  frete (VLFRETE)                6.800 USD   → base, II, IPI, PIS, COFINS (já no cálculo)
+  desp. aduaneira (VLADUANEIRA)  4.700 R$
+  outros custos (VLOUTROSCUSTOS) 4.500 R$
+  AFRMM (VLAFRMM)                3.604 R$  = exatamente 10% do frete em reais (36.040)
+
+VLTOTAL = Σ QT × (base + II + IPI + PIS + COFINS + aduaneira + AFRMM)
+          321.503,29 calculado × 321.503,27 gravado (centavos de arredondamento)
+
+CUSTOULTPEDCOMPRA = PCOMPRA × COT + II + aduaneira + outros custos + AFRMM + X
+          X = 3.196,00 R$ no pedido, também por peso, SEM coluna no PCITEM
+          → RESOLVIDO na 8ª rodada: X + AFRMM = o frete em DÓLAR (ver abaixo)
+```
+
+**O que isso muda na tela (etapa 2):** o 1º pedido tem despesas do processo,
+digitadas como **totais do pedido**: frete (USD), despesa aduaneira, outros
+custos, AFRMM (ou 10% do frete?) e o X do custo. A aplicação reparte tudo
+por PESOLIQDI × QT, com o mesmo `ratearFrete`. Ainda não se sabe **onde a
+3010 guarda esses totais**: não estão no PCPEDIDO nem no PCCONTAINERS.
+
+**O caminho mais curto:** um trace novo da 3010 (igual ao
+TRACE3010_-_PEDIDO_MASTER_2.log) lançando **na homologação** um pedido com
+frete e despesas. Ele mostra os campos da tela, a tabela dos totais, o X do
+custo e o que a gravação escreve. O 2.20 da 8ª rodada, com a busca corrigida,
+confere o padrão nos 7 pedidos (`despesasPorPedido`: totais, AFRMM ÷ frete e
+X de cada um).
+
+## Homologação, 8ª rodada (24/09): as regras do 1º pedido com despesas, FECHADAS
+
+O resumo de despesas do 2.20 nos 7 primeiros pedidos com frete mostrou:
+```
+AFRMM ÷ frete em reais = 0,100 em todos                      → AFRMM = 10% do frete
+X (a sobra do custo) + AFRMM = frete em USD em todos:
+  11841: 3.196 + 3.604 = 6.800 · 11840: 6.392 + 7.208 = 13.600 · 11839: 10.475 + 11.812 = 22.287
+```
+**Regras deduzidas e conferidas até a 6ª casa no 11841** (fixture
+`test/fixtures/homologacao-11841-despesas.json`):
+```
+Totais do pedido repartidos por PESOLIQDI × QT (por unidade, sem arredondar):
+  frete (USD) · despesa aduaneira (R$) · outros custos (R$) · AFRMM (R$, total informado:
+  10% do frete em reais SEM os centavos nos 7 pedidos — corrigido na 9ª rodada)
+base              = (PCOMPRA + frete) × COT                        → II, PIS, COFINS, IPI como antes
+PERCADUANEIRA, PERCAFRMM = despesa ÷ base × 100
+PERCOUTROSCUSTOS  = outros ÷ (base + II + IPI + PIS + COFINS + aduaneira + AFRMM) × 100
+CUSTOULTPEDCOMPRA = PCOMPRA × COT + II + aduaneira + outros custos + frete EM USD, SEM converter
+VLTOTAL           = Σ arred2(QT × parcela gravada): base, II, IPI, PIS, COFINS, aduaneira, AFRMM
+                    (11841: 321.503,27 exato; somar sem arredondar cada parcela daria ,29)
+```
+- **O custo leva o frete em dólar sem converter e não leva o AFRMM.** Parece
+  **erro da 3010**, a mesma mistura de moeda do CUSTOREP (03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md). A aplicação
+  replica (decisão 4: igual à 3010). **Avisar o time**; se decidirem corrigir,
+  é uma linha em `calcularValoresItem`.
+- **Implementado:** `calculo/despesas.calculo.ts` (`ratearDespesas`, com o
+  AFRMM de 10%), as despesas em `calcularValoresItem` (valores, percentuais,
+  custo novo) e o VLTOTAL com o arredondamento da tela. A 9ª rodada confere
+  os 7 pedidos pelo cálculo novo (2.17).
+- **Para a tela (etapa 2):** o pedido recebe frete (USD), despesa aduaneira
+  (R$) e outros custos (R$), e o AFRMM sai calculado. Continua sem se saber
+  **onde a 3010 guarda esses totais** e se o AFRMM é digitado ou calculado
+  (7 de 7 = 10%). **O trace de um lançamento com despesas responde os dois.**
+- **3.6:** a prévia deu 503 (o comex não respondeu ou recusou). O roteiro
+  agora mostra a mensagem. Suspeita: comex-api no ar sem o patch da rota
+  `/leitura` (`comex-api-rota-leitura.patch`), o que daria 404.
+
+## Homologação, 9ª rodada (24/09): o cálculo novo nos 7 pedidos
+
+- **VLTOTAL:** a busca do 2.20 achou sozinha, nos 11 primeiros pedidos,
+  `VLTOTAL = Σ QT × (base + impostos) + Σ(QT×VLADUANEIRA) + Σ(QT×VLAFRMM)`.
+  O 2.17 bate **exato** em 11841, 11840 e nos 4 sem frete. Nos outros 5 ficou
+  a 10 a 27 centavos.
+- **AFRMM, erro meu, CORRIGIDO (com teste):** o gravado é 10% do frete em reais
+  **sem os centavos** (11839: 11.812,00, não 11.812,11; 11831: 656, não
+  656,23). Derivar 10% exato errava 5 de 7 pedidos na 5ª casa. Agora o AFRMM
+  é **total informado**, com `sugerirAfrmm` (10% sem centavos) como sugestão
+  para a tela. Corta ou o time digita redondo? Os centavos ficaram todos
+  abaixo de 0,50, então não dá para saber: o trace dirá.
+- **Estimativa dos totais no roteiro, CORRIGIDA (com teste):** sem saber onde
+  a 3010 guarda os totais, o roteiro somava os itens e arredondava. No 11833
+  isso dá 1.238,16, e o total dos pedidos irmãos é 1.238,17. Agora
+  `estimarTotal` testa ±1 e ±2 centavos e fica com o total que reproduz os
+  itens.
+- **3.6: o comex respondeu 405 (Method Not Allowed) no `POST /leitura`.** O
+  comex-api no ar **não tem o patch** da rota: sem ele, o caminho cai numa
+  rota de outro método. Aplicar `comex-api-rota-leitura.patch` no comex e
+  reiniciar.
+
+## Homologação, 10ª rodada (24/09): o que sobra são os totais digitados
+
+- **23 de 43** itens com frete batem em tudo. **11838 e 11839: todos os itens
+  iguais**; só o VLTOTAL fica a 1 ou 2 centavos. 11841 e 11840 batem inteiros.
+- **Nos 11831 a 11833 o frete foi digitado em REAIS.** O 11832 tem 1 item com
+  500 un e VLFRETE gravado 2,476332 → 1.238,166 USD, que não é centavo de dólar,
+  = **6.562,28 R$ ÷ 5,30**. O AFRMM 656 é 10% de 6.562,28 sem os centavos.
+  O roteiro estimava o frete em dólar (1.238,17) e errava a 6ª casa.
+  Corrigido com teste: `melhorTotalDoFrete` testa dólar e reais.
+  **Para a tela:** o frete pode ser digitado em reais (ou nas duas moedas):
+  o trace confirma.
+- **VLTOTAL do 11838 e do 11839:** com todos os itens iguais, a diferença de
+  centavos só pode ser o arredondamento do total, provado até agora só no
+  11841. O item novo **2.22** testa as formas de arredondar com os valores
+  GRAVADOS, que não dependem de estimativa.
+- **11833:** o valor por kg não é igual em todos os itens. O 2.17 passa a
+  contar os itens do pedido fora da comparação (base zerada), que podem estar
+  entrando no rateio.
+- **3.6 continua 405:** o patch do comex ainda não foi aplicado.
+
+## Homologação, 11ª rodada (24/09): itens quase todos, o VLTOTAL por centavos
+
+- **Itens:** 25 de 43 com frete iguais; só o 11833 ainda difere. O PERCFRETE
+  calculado é sempre 0,999995 do gravado, então o frete real é 1.238,166 USD =
+  **6.562,28 R$** (o mesmo dos irmãos). Os dois totais reproduzem o VLFRETE na
+  6ª casa, e só o PERCFRETE distingue. **Corrigido com teste:** a estimativa
+  conta o PERCFRETE e a faixa de busca cresce com a quantidade (em reais, ±2
+  centavos não alcançavam).
+- **VLTOTAL (2.22, valores gravados): nenhuma forma simples bate nos 11.**
+  "Parcela × QT a 2 casas" bate em 7 (erra 11839, 11838, 11833, 11832).
+  "Soma sem arredondar" bate em 7 (erra 11841, 11840, 11835, 11832). As duas se
+  complementam, e o 11832 não bate em nenhuma. Hipótese: a tela soma com os
+  valores **internos**, antes de gravar as 6 casas. O 2.17 passa a mostrar o
+  VLTOTAL com os valores internos do cálculo (parcela × QT e soma).
+  **Se isso também não fechar**, o VLTOTAL do 1º pedido fica com a regra de
+  "parcela × QT" e uma diferença conhecida de até 2 centavos. É decisão do
+  time se isso importa: o contas a pagar nasce do 2º pedido (03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md).
+
+## Homologação, 12ª rodada (24/09): CÁLCULO DO 1º PEDIDO FECHADO
+
+```
+itens:   sem frete 28 de 28 · com frete 43 de 43 → 71 de 71 iguais em tudo
+         (base, II, IPI, PIS, COFINS, custo, frete, despesa aduaneira, outros
+          custos, AFRMM e os percentuais)
+VLTOTAL: 8 de 11 exatos · 11839 −0,02 · 11838 −0,01 · 11833 +0,01
+```
+Nem os valores internos fecham os 3 restantes: cada forma de somar acerta uns e
+erra outros. É arredondamento da própria tela. **Decisão (01_ARQUITETURA/DECISOES.md): até 2
+centavos aceitos.** O roteiro separa "exato" de "a até 2 centavos".
+
+**Resumo do que o cálculo cobre, provado contra a homologação:** 1º pedido sem
+frete; com frete (digitado em USD ou em R$), despesa aduaneira, outros custos e
+AFRMM, tudo repartido por PESOLIQDI × QT; custo com o frete em USD sem
+converter (a mistura de moeda da 3010, replicada; **avisar o time**).
+**Não cobre:** seguro, capatazia, Siscomex (só vistos em 2º pedido), redução
+de base, IPI por valor. Pedido com esses campos vira caso de teste antes.
+
+**Para a gravação (etapa 3), ainda em aberto:** onde a 3010 guarda os totais
+das despesas, em que moeda o time digita o frete, e se o AFRMM é digitado ou
+calculado (10% sem centavos). O trace de um lançamento com despesas responde.
+
+## Homologação, 17ª rodada (24/09): O BACKEND INTEIRO VALIDADO
+
+**21 ok · 0 erro · 0 pulado.** Pela primeira vez o caminho inteiro rodou contra
+a MIMO-HOMOLOG: login WinThor (setor 18), filiais pela PCLIB, cotação, impostos
+e **a prévia com um LAST de verdade**:
+```
+26MZC289F → comex (/leitura) → de-para no WinThor → regras → prévia
+  3 itens · podeGravar false
+  Linha 8: código BH26081, descrição começa com BH26082   ← o erro que a PROCESSOS confirmou
+  Linha 9: código BH26082, descrição começa com BH26081
+  pedidos da 3010 com a mesma invoice: nenhum
+```
+- **comex-api:** o patch da rota `/leitura` entrou (commit no repositório do
+  comex, 5 testes passando). O teste lê a senha dos LASTs só do ambiente
+  (`PLANILHA_SENHA`); a senha padrão que o teste tinha saiu antes do push.
+  O comex precisa subir com a `PLANILHA_SENHA` exportada no mesmo terminal
+  e em `127.0.0.1`.
+- **Os 6 "diferente" que sobram são conhecidos:** 1.6 (porto do 9726,
+  resolvido: nacionalização), 1.10 (cotação de 2105, dado da base), 1.13
+  (numerador da homologação atrás, dado da base; a gravação confere o master),
+  2.11 (planilha do time com erros de digitação e duplicados "MP" da família
+  HTC, que viram pendência), 2.14 (II 14,4 do 11849, que é 2º pedido com o II
+  da DI) e 2.21 (respondido: o 1º pedido tem frete).
+- Nome de LAST com **espaço não separável** (o `ls -b` mostra sem a barra):
+  digitar o nome não funciona; usar curinga (`ls ../lasts/26MZC289F*`).
+
+## Ainda não rodou de verdade (atenção)
+
+- **CI/CD nunca rodou** no GitHub nem no runner. O `mount` no .40 também não
+  (o teste usa pasta local).
+- **Ganchos no Windows** (Git Bash) não testados.
+
+## Achados na revisão do pacote (antes da etapa 2)
+
+- **CORRIGIDO: a cotação saía do dia anterior.**
+  ```
+  GET /cadastros/cotacao?moeda=220&data=2026-07-19
+    ↓  @Type(() => Date) → new Date('2026-07-19') = 19/07 00:00 UTC = 18/07 21:00 em Brasília
+    ↓  node-oracledb 6.10 envia Date como TIMESTAMP com a hora LOCAL
+    ↓  Oracle recebia 18/07 21:00 → TRUNC → 18/07
+    ↓  voltava a cotação de 18/07 com "data": "2026-07-19"
+  ```
+  E `data=2026-02-30` era aceita: o `new Date` empurrava para 02/03 e a rota
+  consultava 01/03 sem avisar. Correção: a data fica texto `AAAA-MM-DD`
+  (validado: formato e calendário) e vira data no Oracle com
+  `TO_DATE(:2, 'YYYY-MM-DD')`, sem depender do fuso do servidor. Teste de
+  regressão em `test/cotacao.e2e-spec.ts`; o apoio `test/apoio/data-no-oracle.ts`
+  usa o codificador do próprio driver para mostrar o que chega no Oracle.
+  **Regra para a etapa 3:** nenhuma data vai para o Oracle como Date do
+  JavaScript; sempre texto + `TO_DATE`. Conferir com
+  `diaComparadoNaConsulta` / `dataQueOOracleRecebe`.
+- **FEITO: regra D na prévia.** Cada pedido da prévia traz
+  `pedidosComMesmaInvoice`: os pedidos do WinThor com o mesmo
+  `PCPEDIDO.NUMINVOCE` (NUMPED, IDPEDIDOMASTER, CODFORNEC, fornecedor,
+  negociação, emissão, quem lançou, rotina). **Não trava a prévia**, porque o
+  fornecedor só é escolhido depois: a tela compara com o CODFORNEC escolhido e,
+  se bater, pede o motivo; a gravação confere de novo. Uma consulta só para o
+  lote (`winthor/pedidos-da-invoice.oracle.ts`). Decisões de implementação:
+  compara só NUMINVOCE (NUMPROFORMA daria alarme falso com a sobra do pedido
+  anterior); não filtra ROTINALANC (a rotina vem na resposta); emissão sai
+  como texto (TO_CHAR). Teste com o caso 11840/11841 (NUMPED e invoice reais,
+  fornecedor e negociação ilustrativos). **Conferir na homologação:** se
+  IDPEDIDOMASTER e FUNCLANC existem no PCPEDIDO com esses nomes, e o tempo
+  da consulta (`UPPER(TRIM(NUMINVOCE))` não usa índice).
+- **FEITO: rota dos impostos por item.**
+  `GET /cadastros/impostos?filial=4&fornecedor=15&pais=1600&porto=1&produtos=9018,15708`.
+  Copia a consulta da tela (trace, entrada 237) em `winthor/impostos-item.oracle.ts`:
+  os blocos TRIBUTACOES e EXCECOES têm FROM e WHERE iguais. Ligação coluna da
+  consulta → PCITEM conferida nos binds do INSERT PCITEM do 11681 (mesmo nome):
+  ```
+  PERCIMPORTACAO 20 · PERCIPI→PERIPI 6,5 · PERPIS 2,1 · PERCOFINS 9,65 · CUSTOULTENT 862,091374
+  PERPISCALCDI e PERCOFINSCALCDI = 0 → NÃO são esses que a tela usa para PIS/COFINS
+  PERCICMSDIFERIDO 100 e PERICM 0 → por isso não há ICMS no cálculo
+  ```
+  Cada filtro que faria a 3010 esconder o produto na grade vira **restrição**
+  com o motivo (sem tributação, sem PCEST/PCPRODFILIAL na filial, sem preço na
+  região, fora de linha, proibido para venda, TIPOMERC CB, sem departamento).
+  Campo do cadastro diferente do único caso conferido pelo cálculo (seguro,
+  frete, IPI por valor, ICMS, suspensão...) aparece em **foraDoCalculo**.
+  `podeUsar` só é true sem nenhum dos dois. **Conferir na homologação** (a
+  rota devolve tudo isso para comparar):
+  - `numRegiao`: hipótese de que o `:NUMREGIAO` 300 da tela é o
+    `PCFILIAL.NUMREGIAOPADRAO` da filial 4;
+  - país e porto: no trace, origem = procedência = aquisição = 1600 e
+    chegada = nacionalização = 1. Hipótese: a tela usa origem e chegada;
+  - `parametrosDaTela` (TIPOTRIBENTIMP e CON_USATRIBUTACAOPORUF): a consulta
+    copiada é a do caminho que a tela seguiu com os valores desta base;
+  - 9018, filial 4, fornecedor 15, China, porto 1 deve voltar 20 / 6,5 / 2,1 / 9,65.
+- **CORREÇÃO do 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md: o INSERT PCFORNECFILIAL da tela é de TODOS os
+  fornecedores.** Trace, entradas 190 a 192: `INSERT ... SELECT` de PCFORNEC ×
+  PCFILIAL onde falta, fora a filial 99, **sem filtro de fornecedor e sem
+  parâmetro**, com COMMIT na hora, antes de o pedido existir. Por isso a rota
+  não trata "fornecedor fora da filial" como restrição. Pesa na decisão 4 para
+  a etapa 3 (item 10 dos pontos em aberto (00_STATUS)).
+- **FEITO: rota da regra A.** `GET /cadastros/negociacao/validar?valor=26603&invoice=26MMC709F`
+  devolve `{ valor, nivel: ok | aviso | bloqueio, mensagem, podeSeguir }`, sem
+  consultar o banco. Usa a mesma `validarNumNegociacao` que a gravação vai
+  usar. Devolve o `valor` como foi enviado, para a tela descartar resposta
+  atrasada enquanto o usuário digita. Testes em `test/negociacao.e2e-spec.ts`.
+- Gancho de commit: um `git commit --amend` num commit de correção é
+  recusado se o que se acrescenta não tem teste, mesmo que o commit original
+  tenha. O gancho olha só o que está sendo acrescentado. Contornar com commit
+  separado, nunca com `--no-verify`.
+- Miudezas: comentário desatualizado em `previa.service.ts` (diz que a regra
+  do NUMINVOCE e do NUMNEGOCIACAO está em aberto); eslint com 142 erros (125
+  só de formatação) e o CI não roda o eslint.
+
+---
+
+====================================================================================================
+DOCUMENTO 12/23: 03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
+====================================================================================================
+
+# Validação — Template × trace da 3010 e o teste de ouro da montagem
+
+**Natureza:** evidência + contrato coberto por teste.
+
+## 1. As duas fontes
+
+```text
+trace do pedido 11681   o que a 3010 gravou de verdade; corta em 100 valores por comando
+template P1             Template_-_PEDIDO_MASTER_3010.xlsx, aba INSERTS: as 136 + 173
+                        colunas completas para o mesmo pedido de exemplo
+                        (9018, 1.000 un a 83,74 USD, cotação 5,30, sem frete)
+```
+
+O template fica **fora do Git** (é planilha de trabalho do time). O que importa
+dele está em `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md` e nas fixtures do
+repositório do código (`api/test/fixtures/template-3010-p1.json` e
+`trace-11681-inserts.json`).
+
+## 2. O cruzamento (24/09)
+
+O template gera o pedido de exemplo P1 (9018, 1.000 un, 83,74 USD, 5,30), o
+mesmo do trace. Coluna a coluna, onde os dois têm valor:
+
+| Tabela | Colunas | Iguais | Diferentes | Só no template (depois do corte do trace) |
+|---|---|---|---|---|
+| PCITEM | 173 | 97 | 3 | 73 |
+| PCPEDIDO | 136 | 96 | 4 | 36 |
+
+As diferenças são todas explicadas: variáveis do pedido (NUMPED, master,
+invoice de teste), a mesma data escrita de outro jeito (DATALANC = SYSDATE), e
+duas escolhas do template: **CUSTOULTENT** lido do PCEST (a regra fechada na
+3ª rodada) e **QTSUGESTAO = 0**, onde a 3010 gravou −2.316 (agora a decisão é
+calcular como a 3010). As colunas "só template" não têm como ser conferidas
+pelo trace; quase todas são 0, NULL ou marcações ('S'/'N').
+
+## 3. O teste de ouro da montagem (coberto por teste)
+
+```text
+entradas do pedido de exemplo  -> a montagem reproduz as 309 colunas do template
+entradas do 11681              -> a montagem reproduz os 200 valores do trace
+                                  (fora o DATALANC, que vai como SYSDATE)
+```
+
+Duas sabotagens de propósito foram pegas pelo teste, com a mensagem apontando a
+coluna:
+
+```text
+FRETE 'C' trocado por 'F'      -> "FRETE: esperado 'C', montado F"
+VLIPI com a conta do PIS        -> "VLIPI: esperado 34.618116, montado 9.320262"
+```
+
+## 4. Cabeçalho do 1º pedido: o que a 3010 grava (roteiro 2.23, 25/09)
+
+Sobre 1.389 pedidos da 3010 em 2026 (775 são 1º pedido do master):
+
+| Coluna | Regra na gravação | Evidência |
+|---|---|---|
+| FRETE, TIPOVENC, TIPOEMBALAGEMPEDIDO, PERCAPRAZO | **fixos 'C', 'P', 'V', 100** | 767 de 775 primeiros pedidos (o vazio/'S' é do 2º pedido) |
+| CODFORNECFABRIC, CODFORNECPROD | = CODFORNEC | 1.389 de 1.389 |
+| CODPAISPROC, CODPAISAQUISICAO | = país de origem | 1.389 de 1.389 |
+| NUMPROFORMA | = invoice por padrão, **editável na tela** | 1.300 de 1.389; quando difere, costuma ser proforma de verdade (26MCS415F × 26MCS400F) |
+| DTEMISSAOINVOCE | data da invoice do LAST | template (LEIA-ME) |
+| DTPREVEMBARQUE | = data da invoice, editável | quase sempre 0 dias (às vezes 2 a 4) |
+| DTPREVCHEGADA | **campo novo na tela** | 27 a 41 dias depois do embarque, varia |
+| DTPREVENTRADAESTOQUE | = chegada + 20 dias, editável | a combinação mais comum em todas as faixas |
+| OBS a OBS7 | vazias na criação, fora o motivo da decisão D | ver abaixo |
+
+**OBS:** o time anota nelas ao longo da vida do pedido (OBS: "PEDIDO EM
+PRODUÇÃO", "DUIMP ... INVOICE ... CNTR ..."; OBS3: "ITENS A ENDEREÇAR"; OBS5:
+"PAGAMENTO SALDO EFETUADO"; OBS2 só no 2º pedido). **OBS4, OBS6 e OBS7 não
+aparecem em nenhum pedido de 2026.** Cada uma tem 100 caracteres. **Decidido
+(Cleilson, 25/09): o motivo vai na OBS7** ("Invoice repetida: ...", até 100
+caracteres), com o texto completo no log da aplicação.
+
+**Achado de dados:** há NUMINVOCE e NUMPROFORMA gravados com tabulação no fim
+('26PGBK054\t', '26MDH530F\t\t'). A checagem de invoice repetida usava o TRIM
+do Oracle, que só tira espaço, e essas invoices escapavam; corrigido (patch
+0040). A gravação grava a invoice sem espaço em branco nas pontas.
+
+====================================================================================================
+DOCUMENTO 13/23: 03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
+====================================================================================================
+
+# Validação — Primeiro pedido gravado pela aplicação (11858)
+
+**Natureza:** observado em runtime, na **homologação** (base TESTE). **Não
+equivale a publicação em produção**: a API rodava na máquina do Cleilson, com
+`GRAVACAO_3010_ATIVA=S` só no `.env` local.
+
+## 1. O pedido
+
+```text
+data                25/09/2026
+NUMPED              11858
+IDPEDIDOMASTER      1049/0426
+invoice             26MZC900F   (o LAST 26MZC289F com a invoice trocada, só a célula B17)
+fornecedor          15268  ZHEJIANG ZHICHENG HOUSEWARE CO., LTD
+filial              4
+itens               3   (linhas 8 e 9 escolhidas na tela)
+cotação             5,1696 (USD, 15/09/2026, lida do WinThor pelo servidor)
+VLTOTAL             84.059,54
+FUNCLANC            CLEILSON.ANDRAD
+```
+
+O LAST de teste foi montado a partir do original: aberto com a senha,
+convertido para `.xlsx` pelo LibreOffice, **só a B17** trocada, fórmulas
+recalculadas. Comparação célula por célula: 1.248 células, a única diferença é
+a B17; total FOB 12.000,00 igual ao original.
+
+## 2. Conferido no banco
+
+```text
+base, II (16,2%), IPI (6,5%), custo      batem até a 6ª casa refazendo a conta
+VLTOTAL                                  84.059,54 = regra "parcela × QT a 2 casas"
+FRETE / TIPOVENC                         C / P
+datas previstas                          chegada 22/09, entrada 12/10 (chegada + 20)
+OBS7                                     vazia (sem motivo)
+PCNUMERADORIMP 2026                      1049 -> 1050
+PCCONSUM.PROXNUMPED                      11858 -> 11859
+PCPRODUT.CUSTOREP                        0,55 / 0,55 / 0,65 (preço em dólar), data do dia
+```
+
+O CUSTOREP atualizado prova que os três blocos PL/SQL da 3010 rodaram pela
+conexão da API. Ficaram confirmados os três pontos que só a homologação mostrava:
+parâmetros nomeados nos blocos, permissões do usuário da API e o gatilho do
+PCITEM.
+
+## 3. Conferido na própria 3010
+
+Aberto na rotina 3010 (PCSIS3010 v.37.0.08.071), sem salvar:
+
+- a pesquisa acha o pedido pelo número, com master, valor total, negociação e
+  proforma;
+- o cabeçalho mostra cada campo no lugar (fornecedor, comprador, os três
+  países, produtor e fabricante, FOB, os portos, as datas, a cotação nas duas
+  moedas, "Considera capatazia" marcado);
+- o master aparece em **vermelho (bloqueado)** e o "Notificado" como
+  **0 OUTROS FORNECEDORES**: é o mesmo estado que a 3010 deixa ao lançar
+  (`DTLIBERA`, `CODFUNCLIBERA` e `CODFORNECNOTIF` vazios no INSERT do 11681);
+- o trace da abertura: **nenhuma escrita** (só leituras e o `UPDATE PCROTINA`
+  de contagem de uso), os itens carregados pela consulta que junta PCITEM,
+  PCPRODUT e PCPRODFILIAL, e `SELECT ... FROM PCITEM WHERE NUMPED = 11858 FOR
+  UPDATE NOWAIT`: **a 3010 trava os itens enquanto o pedido está aberto**.
+
+## 4. A primeira tentativa (trava do numerador)
+
+A primeira tentativa pegou a PCCONSUM travada por outra aplicação em teste:
+o `FOR UPDATE WAIT 5` venceu (ORA-30006), a transação foi desfeita inteira (a
+segunda tentativa pegou o mesmo 11858, nenhum número queimado), mas a tela
+mostrou "Internal server error". **Corrigido com teste de regressão:** trava
+vencida (ORA-30006 ou ORA-00054) num numerador vira recusa 409 dizendo qual
+numerador está ocupado e que dá para tentar de novo.
+
+## 5. O que ficou para trás neste pedido
+
+O 11858 foi gravado **antes** da correção do peso (patch 0049): o 15710 foi com
+0,104167 kg/un do cadastro, e o LAST diz 0,14375. Na TESTE, não precisa refazer.
+O pedido fica na base como referência.
+
+====================================================================================================
+DOCUMENTO 14/23: 03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
+====================================================================================================
+
+# Validação — Time da importação com 3 LASTs da semana (25/09)
+
+**Natureza:** observado em runtime na homologação (o time gravou pela aplicação)
++ decisões do time + correções cobertas por teste. **Reteste pendente** com o
+código corrigido.
+
+## 1. Os LASTs
+
+```text
+26MIW185F   -> gravado como 11861 (master 1052/0426)   3 itens, 2 produtos
+26MOC267F   -> gravado como 11859 (master 1050/0426)   3 itens, 3 produtos
+26MSR296F   -> gravado como 11860 (master 1051/0426)   6 itens, 6 produtos
+```
+
+Os três foram **apagados da TESTE** para o reteste (roteiro em
+`05_OPERACAO/BASE_TESTE.md`). A linha "CNTR. NOS.:" dos LASTs (quantidade 1) é
+a dos contêineres: o comex descarta, e não é item.
+
+## 2. O que o time apontou
+
+```text
+avisos do comex que ficam      total FOB, nome da fábrica, porto de destino, data da invoice
+avisos do comex que saem       número do contêiner, porto de embarque, cliente,
+                               imagem com os dados bancários
+erro 1  (26MSR296F)            peso líquido diferente do LAST
+erro 2  (26MIW185F)            item repetido gravado em duas linhas; a 3010 mostra
+                               duplicado sem validar; o certo é somar
+pergunta                       LAST sem a soma dos valores: calcular pelos itens e avisar
+```
+
+## 3. Peso líquido: o que o banco mostrou
+
+A regra de antes gravava o PESOLIQDI do **cadastro**. O LAST traz o N.W. de cada
+linha; a conta **N.W. ÷ quantidade** reproduz o cadastro até a 6ª casa quando os
+dois batem (26MZC289F: 490 kg ÷ 4.800 = 0,102083) e mostra onde ele está velho.
+
+No 26MSR296F, **os 6 produtos** estavam com o cadastro diferente do LAST:
+
+```text
+código    produto   cadastro    LAST        diferença
+BM19230   6839      0,85        0,91        +0,06
+BM19231   6840      0,85        0,91        +0,06
+BM19232   6841      1,6875      1,7125      +0,025
+BM20201   7157      0,62        0,60        -0,02
+BM20202   7158      0,62        0,60        -0,02
+BM25060   11052     1,233333    1,283333    +0,05
+```
+
+O histórico desses produtos nos pedidos da 3010 (2019 a 2026) explica:
+
+```text
+6840, 6841, 7157, 7158   o peso muda de pedido para pedido (o 6841 passou por
+                         1,66 / 1,7 / 1,6875 / 1,65 / 1,675): o time ajusta à mão
+6839, 11052              sempre o mesmo (0,85 em 22 pedidos; 1,233333 em 3)
+```
+
+Mecânica (evidência do trace): o bloco da 3010 que roda depois de gravar faz
+`PCPRODUT.PESOLIQDI = PCITEM.PESOLIQDI`. O cadastro guarda **o peso do último
+pedido**, e só muda se alguém digitar outro na grade de itens da 3010.
+**Conclusão:** não era erro de cadastro; a aplicação não fazia o ajuste que o
+time faz à mão.
+
+## 4. Item repetido
+
+No 26MIW185F, o PJ10PCM veio nas linhas 11 e 12:
+
+```text
+linha 11   428 un   22,39 USD   9.582,92
+linha 12   1.522 un 23,73 USD   36.117,06
+soma       1.950 un 23,435887 USD (média ponderada)   45.699,98 = o total do LAST
+```
+
+## 5. Decisões do time (25/09)
+
+```text
+peso líquido da DI        N.W. da linha ÷ quantidade (6 casas); o cadastro só quando
+                          o LAST não traz o peso da linha (com aviso)
+item repetido             uma linha só; preços diferentes pela média ponderada
+                          (o ajuste fino, se preciso, é feito na invoice; o
+                          importante é não subir o mesmo item duas vezes)
+aviso de peso             quando o peso do LAST difere mais de 10% do cadastro
+avisos do comex           saem os 4 que o time não usa
+total FOB                 a tela soma os itens e avisa quando falta a soma do LAST
+```
+
+## 6. Correções (cobertas por teste)
+
+```text
+0048 feat   prévia avisa o que não bloqueia (total FOB calculado, item repetido,
+            linha sem peso) e traz o N.W. de cada linha
+0049 fix    gravação soma o item repetido e grava o peso líquido do LAST
+0050 feat   tela mostra os avisos (lista própria, separada das pendências)
+0051 fix    aviso do total FOB quando falta a soma do LAST, mesmo com total na invoice
+0052 feat   prévia dispensa os 4 avisos do comex; total FOB vazio não bloqueia
+0053 feat   aviso quando o peso do LAST difere mais de 10% do cadastro
+```
+
+Antes do 0052, **os avisos do comex de nível "bloqueio" viravam pendência** e
+impediam gravar; a imagem dos dados bancários é bloqueio para o comex (ele gera
+a invoice).
+
+## 7. Reteste (pendente)
+
+Esperado com o código corrigido:
+
+```text
+26MIW185F   PJ10PCM numa linha só: 1.950 un a 23,435887, peso 4,765
+26MSR296F   PESOLIQDI 0,91 / 0,91 / 1,7125 / 0,6 / 0,6 / 1,283333
+PCPRODUT    o 6839 passa de 0,85 para 0,91 (o bloco da 3010 leva o peso do pedido)
+tela        nenhum dos 4 avisos dispensados; nenhum aviso de peso (diferenças < 10%)
+masters     a partir de 1050/0426
+```
+
+====================================================================================================
+DOCUMENTO 15/23: 04_CONTRATOS/CONTRATO_COMEX_API.md
+====================================================================================================
+
+# Contrato — pedido-3010 com o comex-api
+
+## 1. Rota
+
+```text
+POST {COMEX_API_URL}/api/v1/import-documents/leitura
+multipart, campo "arquivos" (um ou mais LASTs)
+timeout COMEX_API_TIMEOUT_MS (padrão 120000)
+```
+
+A rota `/leitura` **não existe no comex original**: vem do patch
+`comex-api-rota-leitura.patch` (aplicado com `git apply` no comex-api). Sem ele, o
+comex responde **405** e a tela diz que o comex recusou a leitura. O patch
+`comex-api-senha-fora-do-teste.patch` tirou a senha padrão dos testes do comex.
+
+Configuração do comex (fora deste repositório):
+
+```text
+PLANILHA_SENHA   senha dos LASTs, só no ambiente do terminal que sobe o comex
+host             127.0.0.1 (o Node tenta IPv6 com "localhost" e falha)
+```
+
+Não registrar a senha real neste repositório documental.
+
+## 2. Resposta consumida (`api/src/modules/comex/comex.contrato.ts`)
+
+```text
+ComexLeitura    versao_nucleo, processos[]
+ComexProcesso   arquivo_origem, pode_emitir, erro?, cabecalho, itens[], ocorrencias[]
+ComexCabecalho  invoice_number, invoice_date, fornecedor_nome, fornecedor_endereco,
+                porto_embarque, porto_destino, conteiner, conteiner_observacao,
+                total_fob_last, total_fob_invoice, deposito, saldo, frete_maritimo
+ComexItem       linha_origem, codigo_fabrica, descricao, ncm, unidade, quantidade,
+                preco_unitario (arredondado como na invoice), preco_unitario_last,
+                total, caixas, peso_bruto, peso_liquido (N.W. da LINHA, kg)
+ComexOcorrencia severidade, nivel (bloqueio | conferir | informativo), codigo,
+                mensagem, linha_origem, campo
+```
+
+`pode_emitir` é do uso do comex (emitir a invoice); o pedido-3010 não usa.
+
+## 3. Ocorrências que o pedido-3010 trata (códigos do comex, `nucleo/validacao.py`)
+
+```text
+cabecalho.vazio / cntr_number       número do contêiner        dispensada (não aparece)
+cabecalho.vazio / port_loading      porto de embarque          dispensada
+cabecalho.vazio / to                cliente                    dispensada
+conta.ausente   / imagem_conta      imagem dos dados bancários dispensada
+cabecalho.vazio / total_fob_price   total FOB                  aparece, não bloqueia
+                                                               (a tela soma e avisa)
+cabecalho.vazio / factory_name      nome da fábrica            como o comex manda
+cabecalho.vazio / port_discharge    porto de destino           como o comex manda
+cabecalho.vazio / invoice_date      data da invoice            como o comex manda
+demais                              nível "bloqueio" vira pendência BLOQUEIO_COMEX;
+                                    os outros aparecem como ocorrência
+```
+
+Decisão do time da importação (25/09). Os rótulos vêm do dicionário `ROTULOS` do
+comex (`cntr_number` = número do contêiner, `port_loading` = porto de embarque,
+`to` = cliente, `total_fob_price` = total FOB, `factory_name` = nome da fábrica,
+`port_discharge` = porto de destino, `invoice_date` = data da invoice).
+
+## 4. Erros
+
+```text
+comex fora do ar / timeout   "O comex-api (leitura das planilhas) não respondeu."
+405                          patch da rota /leitura não aplicado
+processo.erro                pendência LEITURA_FALHOU no pedido daquele arquivo
+```
+
+====================================================================================================
+DOCUMENTO 16/23: 04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
+====================================================================================================
+
+# Contrato — Rotas da API pedido-3010
+
+Base: `http://<servidor>:3010/api/v1`. Swagger em `/api/docs`; **um teste falha se
+alguma rota ficar sem documentação**, e outro se alguma rota além da gravação
+escrever no banco.
+
+## 1. Rotas
+
+```text
+POST /auth/login                          login WinThor (setor 18) -> token
+GET  /saude                               Oracle + comex
+POST /previa                              lê os LASTs; prévia com pendências e avisos (não grava)
+POST /calculo/pedido                      calcula o 1º pedido como a 3010 grava (não grava)
+POST /gravacao                            GRAVA o 1º pedido na 3010 (só com GRAVACAO_3010_ATIVA=S)
+GET  /cadastros/filiais                   PCLIB do usuário
+GET  /cadastros/fornecedores?busca=       FORNECIMPORTACAO 6/7 ou REVENDA 'X'
+GET  /cadastros/compradores               setor PCCONSUM.CODSETORCOMPRADOR
+GET  /cadastros/moedas
+GET  /cadastros/cotacao?moeda&data        cotação por data (TO_DATE no Oracle, sem fuso)
+GET  /cadastros/paises
+GET  /cadastros/portos
+GET  /cadastros/vias
+GET  /cadastros/incoterms
+GET  /cadastros/impostos?filial&fornecedor&pais&portoNacionalizacao&produtos
+GET  /cadastros/negociacao/sugestao?invoice   maior da 3010 no ano + 1, e quem usou a última
+GET  /cadastros/negociacao/validar?valor&invoice   regra A, sem banco
+```
+
+Todas exigem o token, menos `/auth/login` e `/saude`.
+
+## 2. POST /gravacao
+
+```text
+arquivo   o mesmo LAST da prévia
+pedido    JSON:
+  sha256                 o que a prévia devolveu para o arquivo
+  escolhas               { linha: CODPROD } para as linhas trocadas ou ambíguas
+  filial, codfornec, comprador, negociacao, moeda, dataCotacao (AAAA-MM-DD),
+  incoterm, via, pais, portoChegada, portoNacionalizacao,
+  numproforma (vazio = a invoice),
+  dtprevembarque, dtprevchegada, dtpreventradaestoque (AAAA-MM-DD),
+  motivoRepetida         obrigatório se o fornecedor já tem master desta invoice
+```
+
+A tela não manda cotação nem tributação: o servidor lê as duas.
+
+```text
+201  { numped, idPedidoMaster, invoice }
+400  arquivo ou JSON faltando; campo em formato errado (diz o campo)
+403  gravação desligada
+409  arquivo diferente do conferido; NUMPED ou master já existentes; numerador ocupado
+422  { statusCode, message, problemas: [...] }
+```
+
+Regras em `02_FLUXOS/GRAVACAO_NA_3010.md`.
+
+## 3. POST /previa
+
+Resposta por arquivo: `02_FLUXOS/PREVIA_DOS_LASTS.md` (seção 7). `gravacaoAtiva`
+diz à tela se a chave está ligada.
+
+====================================================================================================
+DOCUMENTO 17/23: 04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
+====================================================================================================
+
+# Contrato — As 309 colunas que a 3010 grava (PCITEM e PCPEDIDO)
+
+**Natureza:** contrato de gravação, coberto por teste. Para cada coluna: o
+valor que a 3010 gravou no pedido 11681 (trace), o valor que o template gera
+para o mesmo pedido, a origem segundo a aba LEIA-ME e se os dois conferem.
+
+A montagem da API (`api/src/modules/gravacao/colunas-3010.ts`) foi **gerada
+desta tabela** e o teste de ouro (`montagem.spec.ts`) prova que ela reproduz o
+template nas 309 colunas e o trace nas 200 que ele mostra. Detalhes do
+cruzamento em `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`.
+
+O trace corta em 100 valores por comando: "só template" são as colunas depois
+do corte, que só o template tem.
+
+## PCITEM: 173 colunas
+
+| # | Coluna | 11681 (trace) | Template | Origem (LEIA-ME) | Confere |
+|---|---|---|---|---|---|
+| 1 | `NUMPED` | 11681.000000 | v_ped('P1') | PCCONSUM.PROXNUMPED (FOR UPDATE NOWAIT + 1) · PCPEDIDO | **diferente** |
+| 2 | `NUMSEQ` | 1 | 1 | automatico: 1, 2, 3... por pedido · PCITEM | igual |
+| 3 | `CODPROD` | 9018.000000 | 9018 | Numero inteiro · B | igual |
+| 4 | `QTPEDIDA` | 1000.000000 | 1000 | Decimal (6 casas) · C | igual |
+| 5 | `PCOMPRA` | 83.740000 | 83.74 | Decimal (6 casas) · D | igual |
+| 6 | `PLIQUIDO` | 83.740000 | 83.74 | Decimal (6 casas) · E | igual |
+| 7 | `PERIPI` | 6.500000 | 6.5 | Decimal (2 casas) · F · vazio = 6.5 | igual |
+| 8 | `PERPIS` | 2.100000 | 2.1 | Decimal (2 casas) · G · vazio = 2.1 | igual |
+| 9 | `PERCOFINS` | 9.650000 | 9.65 | Decimal (2 casas) · H · vazio = 9.65 | igual |
+| 10 | `PERCIMPORTACAO` | 20.000000 | 20 | Decimal (2 casas) · I · vazio = 20 | igual |
+| 11 | `PERCICMSDIFERIDO` | 100.000000 | 100 | Decimal (2 casas) · J · vazio = 100 | igual |
+| 12 | `CODSITTRIBPISCOFINS` | 50.000000 | 50 | Numero inteiro · K · vazio = 50 | igual |
+| 13 | `PESOLIQDI` | — | 27.1 | Decimal (6 casas) · L · vazio = 27.1 | só template |
+| 14 | `CUSTOULTENT` | 862.091374 | (SELECT NVL(MAX(CUSTOULTENT),0) FROM PCEST WHERE CODPROD = 9018 AND CODFILIAL = '4') | PCEST.CUSTOULTENT do CODPROD na CODFILIAL do pedido · PCITEM | **diferente** |
+| 15 | `QTSUGESTAO` | -2316.000000 | 0 | Decimal (6 casas) · N · vazio = 0 | **diferente** |
+| 16 | `CODPRODORIGEM` | — | 9018 | igual a CODPROD · PCITEM | só template |
+| 17 | `CODFUNCALTER` | — | 349 | CODFUNC do pedido (VLOOKUP pela CHAVE) · PCITEM | só template |
+| 18 | `BASEPISCOFINSLIT` | 443.822000 | 443.822 | PLIQUIDO x COTACAO · 83,74 x 5,30 = 443,822 | igual |
+| 19 | `VLIMPORTACAO` | 88.764400 | 88.7644 | BASE x PERCIMPORTACAO · 443,822 x 20% = 88,7644 | igual |
+| 20 | `CUSTOULTPEDCOMPRA` | — | 532.5864 | BASE x (1 + PERCIMPORTACAO) · 443,822 x 1,20 = 532,5864 | só template |
+| 21 | `CUSTOULTPEDCOMPRASEMST` | — | 532.5864 | igual ao CUSTOULTPEDCOMPRA · 532,5864 | só template |
+| 22 | `VLIPI` | 34.618116 | 34.618116 | CUSTOULTPEDCOMPRA x PERIPI · 532,5864 x 6,5% = 34,618116 | igual |
+| 23 | `VLCREDPIS` | 9.320262 | 9.320262 | BASE x PERPIS · 443,822 x 2,1% = 9,320262 | igual |
+| 24 | `VLCREDCOFINS` | 42.828823 | 42.828823 | BASE x PERCOFINS · 443,822 x 9,65% = 42,828823 | igual |
+| 25 | `BASEICMS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 26 | `PERICM` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 27 | `PERCDESC` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 28 | `PERCDESC1` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 29 | `PERCDESC2` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 30 | `PERCDESC3` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 31 | `PERCDESC4` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 32 | `PERCDESC5` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 33 | `PERCDESC6` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 34 | `PERCDESC7` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 35 | `PERCDESC8` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 36 | `PERCDESC9` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 37 | `PERCDESC10` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 38 | `PERCCREDICMPRESUMIDO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 39 | `PERCOUTRASDESP` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 40 | `PERCICMRED` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 41 | `QTENTREGUE` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 42 | `PERCFRETE` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 43 | `VLPAUTA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 44 | `PERCFRETEFOB` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 45 | `VLFRETE` | 0.000000 | 0 | NULL · PCPEDIDO | igual |
+| 46 | `VLOUTRASDESP` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 47 | `NUMADICAO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 48 | `NUMSEQADICAO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 49 | `PERCDESCICMSDIF` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 50 | `PERCIISUSPENSO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 51 | `PERCOFINSCALCDI` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 52 | `PERPISCALCDI` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 53 | `UTILIZACREDREDPISCOFINS` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 54 | `REDBASEIVA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 55 | `REDBASEALIQEXT` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 56 | `PERICMSANTECIPADO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 57 | `PERCIVA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 58 | `PERCALIQINT` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 59 | `PERCALIQEXT` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 60 | `TIPOCALCST` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 61 | `PERCDESPADICIONAL` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 62 | `PRODBONIFICADO` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 63 | `VLST` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 64 | `VLDESPADICIONAL` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 65 | `VLICMSANTECIPADO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 66 | `PERCALIQEXTGUIA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 67 | `CALCCREDIPI` | 'S' | 'S' | 'S' · PCITEM | igual |
+| 68 | `APROVEITACREDICMS` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 69 | `APROVEITACREDPISCOFINS` | 'S' | 'S' | 'S' · PCITEM | igual |
+| 70 | `VLICMS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 71 | `PERCREDICMS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 72 | `VLCREDICMS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 73 | `DTEMISSAOLICENCAIMP` | Null | NULL | NULL · PCITEM | igual |
+| 74 | `DTVALIDADELICENCAIMP` | Null | NULL | NULL · PCITEM | igual |
+| 75 | `NUMLICENCAIMPORT` | Null | NULL | NULL · PCITEM | igual |
+| 76 | `VLPAUTAPISCOFINS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 77 | `USAPISCOFINSLIT` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 78 | `IPIPORVALOR` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 79 | `VLADICIONALBCST` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 80 | `PERCDIREITOSADUANEIROS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 81 | `PERCIMPOSTOCONSUMO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 82 | `PERCIMPOSTOSELO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 83 | `VLADUANEIRA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 84 | `VLSISCOMEX` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 85 | `VLOUTRASDESPIMP` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 86 | `VLSEGURO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 87 | `PERCSEGURO` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 88 | `VLDESPDENTRONF` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 89 | `PERCDESPDENTRONF` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 90 | `PERCOUTROSCUSTOS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 91 | `VLOUTROSCUSTOS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 92 | `PERCCAPATAZIA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 93 | `VLCAPATAZIA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 94 | `PERCDESPFIN` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 95 | `VLPAUTAICMS` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 96 | `PISCOFINSRETIDO` | 'N' | 'N' | 'N' · PCITEM | igual |
+| 97 | `PERCST` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 98 | `VLBASESTGUIA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 99 | `VLFRETEPORKG` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 100 | `VLFRETECONHEC` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 101 | `ROTINALANC` | 3010.000000 | 3010 | 3010 · PCPEDIDO | igual |
+| 102 | `BASEICST` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 103 | `PERCSISCOMEX` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 104 | `PERCADUANEIRA` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 105 | `PERCOUTRASDESPIMP` | 0.000000 | 0 | 0 · PCITEM | igual |
+| 106 | `PERCFRETENFCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 107 | `VLFRETENFCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 108 | `PERCSEGUROCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 109 | `VLSEGUROCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 110 | `PERCCAPATAZIACUSTO` | — | 0 | 0 · PCITEM | só template |
+| 111 | `VLCAPATAZIACUSTO` | — | 0 | 0 · PCITEM | só template |
+| 112 | `PERCDESPDENTRONFCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 113 | `VLDESPDENTRONFCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 114 | `VLCREDPRESUMIDO` | — | 0 | 0 · PCITEM | só template |
+| 115 | `NUMDRAWBACK` | — | NULL | NULL · PCITEM | só template |
+| 116 | `PERCSISCOMEXCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 117 | `VLSISCOMEXCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 118 | `PERCADUANEIRACUSTO` | — | 0 | 0 · PCITEM | só template |
+| 119 | `VLADUANEIRACUSTO` | — | 0 | 0 · PCITEM | só template |
+| 120 | `PERCOUTRASDESPIMPCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 121 | `VLOUTRASDESPIMPCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 122 | `PERCOUTROSCUSTOSCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 123 | `VLOUTROSCUSTOSCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 124 | `BASEICMSANTECIPADO` | — | 0 | 0 · PCITEM | só template |
+| 125 | `BASECREDPRESUMIDO` | — | 0 | 0 · PCITEM | só template |
+| 126 | `CALCCREDIPICONT` | — | 'S' | 'S' · PCITEM | só template |
+| 127 | `APROVEITACREDICMSCONT` | — | 'N' | 'N' · PCITEM | só template |
+| 128 | `APROVEITACREDPISCOFINSCONT` | — | 'S' | 'S' · PCITEM | só template |
+| 129 | `GERABASEPISCOFINSSEMALIQ` | — | 'N' | 'N' · PCITEM | só template |
+| 130 | `PERCICMSBASEICMSANTECIPADO` | — | 0 | 0 · PCITEM | só template |
+| 131 | `VLBASEIPISUSPENSO` | — | 0 | 0 · PCITEM | só template |
+| 132 | `PERCIPISUSPENSO` | — | 0 | 0 · PCITEM | só template |
+| 133 | `VLIPISUSPENSO` | — | 0 | 0 · PCITEM | só template |
+| 134 | `PERCALTERCUSTOENT` | — | 0 | 0 · PCITEM | só template |
+| 135 | `VLIISUSPENSO` | — | 0 | 0 · PCITEM | só template |
+| 136 | `CONSIISUSPENSOBASEICMS` | — | 'N' | 'N' · PCITEM | só template |
+| 137 | `CONSIPISUSPENSOBASEICMS` | — | 'N' | 'N' · PCITEM | só template |
+| 138 | `VLALTERCUSTOENT` | — | 0 | 0 · PCITEM | só template |
+| 139 | `CONSIDERASTNFCUSTO` | — | 'S' | 'S' · PCITEM | só template |
+| 140 | `CONSIDERASTGUIACUSTO` | — | 'S' | 'S' · PCITEM | só template |
+| 141 | `CONSIDERASTNFCUSTOCONT` | — | 'S' | 'S' · PCITEM | só template |
+| 142 | `CONSIDERASTGUIACUSTOCONT` | — | 'S' | 'S' · PCITEM | só template |
+| 143 | `UTILIZABASEPISCOFINSSUSP` | — | 'N' | 'N' · PCITEM | só template |
+| 144 | `PERCAFRMM` | — | 0 | 0 · PCITEM | só template |
+| 145 | `VLAFRMM` | — | 0 | 0 · PCITEM | só template |
+| 146 | `PERCAFRMMCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 147 | `VLAFRMMCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 148 | `VLPAUTAICMSANTEC` | — | 0 | 0 · PCITEM | só template |
+| 149 | `PERCALIQEXTICMANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 150 | `PERCALIQINTICMANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 151 | `PERCIVAICMANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 152 | `VLPISCALCDI` | — | 0 | 0 · PCITEM | só template |
+| 153 | `VLCOFINSCALCDI` | — | 0 | 0 · PCITEM | só template |
+| 154 | `APLICPERCIVAPAUTAICMSANTECIP` | — | 'N' | 'N' · PCITEM | só template |
+| 155 | `VLADICIONALBCICMSANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 156 | `PERCICMSFRETEFOBICMSANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 157 | `PERCMVAORIGICMSANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 158 | `PERCCARGATRIBMEDIAICMSANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 159 | `REDBASEIVAICMSANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 160 | `REDBASEALIQEXTICMSANTECIP` | — | 0 | 0 · PCITEM | só template |
+| 161 | `PERCANTIDUMPING` | — | 0 | 0 · PCITEM | só template |
+| 162 | `VLANTIDUMPING` | — | 0 | 0 · PCITEM | só template |
+| 163 | `PERCANTIDUMPINGCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 164 | `VLANTIDUMPINGCUSTO` | — | 0 | 0 · PCITEM | só template |
+| 165 | `NUMPEDMASTERORIGEM` | — | NULL | NULL · PCITEM | só template |
+| 166 | `NUMPEDPRINC` | — | NULL | NULL · PCITEM | só template |
+| 167 | `NUMSEQORIGEM` | — | NULL | NULL · PCITEM | só template |
+| 168 | `VLBASEFCPST` | — | 0 | 0 · PCITEM | só template |
+| 169 | `ALIQICMSFECP` | — | 0 | 0 · PCITEM | só template |
+| 170 | `VLFECP` | — | 0 | 0 · PCITEM | só template |
+| 171 | `VLBASEFCPICMS` | — | 0 | 0 · PCITEM | só template |
+| 172 | `PERACRESCIMOFUNCEP` | — | 0 | 0 · PCITEM | só template |
+| 173 | `VLACRESCIMOFUNCEP` | — | 0 | 0 · PCITEM | só template |
+
+## PCPEDIDO: 136 colunas
+
+| # | Coluna | 11681 (trace) | Template | Origem (LEIA-ME) | Confere |
+|---|---|---|---|---|---|
+| 1 | `NUMPED` | 11681.000000 | v_proxnumped | PCCONSUM.PROXNUMPED (FOR UPDATE NOWAIT + 1) · PCPEDIDO | **diferente** |
+| 2 | `IDPEDIDOMASTER` | '942/0426' | v_idmaster | PCNUMERADORIMP.PROXNUMPEDIDO (ou o valor digitado) · PCPEDIDO | **diferente** |
+| 3 | `CODFILIAL` | '4' | '4' | Texto · C | igual |
+| 4 | `CODFORNEC` | 15.000000 | 15 | Numero inteiro · D · CAMPO DE CONTROLE (obrigatorio) | igual |
+| 5 | `CODCOMPRADOR` | 201.000000 | 201 | Numero inteiro · E | igual |
+| 6 | `CODFUNC` | 349.000000 | 349 | Numero inteiro · F | igual |
+| 7 | `FUNCLANC` | 'LUCAS.SILVA' | 'LUCAS.SILVA' | Texto · G | igual |
+| 8 | `DTEMISSAO` | 2026.09.02 00:00:00 | TO_DATE('2026-09-02', 'YYYY-MM-DD') | TO_DATE('AAAA-MM-DD','YYYY-MM-DD') · H | igual |
+| 9 | `NUMNEGOCIACAO` | 11111.000000 | 11111 | Numero inteiro · I | igual |
+| 10 | `VLTOTAL` | 619353.600000 | 619353.6 | Decimal (2 casas) · J | igual |
+| 11 | `FRETE` | 'C' | 'C' | Texto · K | igual |
+| 12 | `TIPOVENC` | 'P' | 'P' | Texto · L | igual |
+| 13 | `TIPOEMBALAGEMPEDIDO` | 'V' | 'V' | Texto · M | igual |
+| 14 | `PERCAPRAZO` | 100.000000 | 100 | Decimal (2 casas) · N | igual |
+| 15 | `CODMOEDA` | 220.000000 | 220 | Numero inteiro · O | igual |
+| 16 | `DTCOTACAO` | 2026.07.19 00:00:00 | TO_DATE('2026-07-19', 'YYYY-MM-DD') | TO_DATE('AAAA-MM-DD','YYYY-MM-DD') · P | igual |
+| 17 | `COTACAO` | 5.300000 | 5.3 | Decimal (6 casas) · Q | igual |
+| 18 | `INCOTERM` | 'FOB' | 'FOB' | Texto · R | igual |
+| 19 | `CODVIA` | 1.000000 | 1 | Numero inteiro · S | igual |
+| 20 | `CODFORNECFABRIC` | 15.000000 | 15 | Numero inteiro · T | igual |
+| 21 | `CODFORNECPROD` | 15.000000 | 15 | Numero inteiro · U | igual |
+| 22 | `CODPAISORIGEM` | 1600.000000 | 1600 | Numero inteiro · V | igual |
+| 23 | `CODPAISPROC` | 1600.000000 | 1600 | Numero inteiro · W | igual |
+| 24 | `CODPAISAQUISICAO` | 1600.000000 | 1600 | Numero inteiro · X | igual |
+| 25 | `NUMINVOCE` | 'TESTECLEI' | 'TESTE' | Texto · Y | **diferente** |
+| 26 | `DTEMISSAOINVOCE` | 2026.01.01 00:00:00 | TO_DATE('2026-01-01', 'YYYY-MM-DD') | TO_DATE('AAAA-MM-DD','YYYY-MM-DD') · Z | igual |
+| 27 | `DTPREVEMBARQUE` | 2026.02.01 00:00:00 | TO_DATE('2026-02-01', 'YYYY-MM-DD') | TO_DATE('AAAA-MM-DD','YYYY-MM-DD') · AA | igual |
+| 28 | `DTPREVCHEGADA` | 2026.03.01 00:00:00 | TO_DATE('2026-03-01', 'YYYY-MM-DD') | TO_DATE('AAAA-MM-DD','YYYY-MM-DD') · AB | igual |
+| 29 | `DTPREVENTRADAESTOQUE` | 2026.04.01 00:00:00 | TO_DATE('2026-04-01', 'YYYY-MM-DD') | TO_DATE('AAAA-MM-DD','YYYY-MM-DD') · AC | igual |
+| 30 | `CODPORTOCHEGADA` | 1.000000 | 1 | Numero inteiro · AD | igual |
+| 31 | `CODPORTONACIONALIZACAO` | 1.000000 | 1 | Numero inteiro · AE | igual |
+| 32 | `CODFUNCINCLUSAO` | 349.000000 | 349 | igual a CODFUNC · PCPEDIDO | igual |
+| 33 | `CODFUNCALTERACAO` | 349.000000 | 349 | igual a CODFUNC · PCPEDIDO | igual |
+| 34 | `CODMOEDACUSTO` | — | 220 | igual a CODMOEDA · PCPEDIDO | só template |
+| 35 | `COTACAOCUSTO` | — | 5.3 | igual a COTACAO · PCPEDIDO | só template |
+| 36 | `DTCOTACAOCUSTO` | — | TO_DATE('2026-07-19', 'YYYY-MM-DD') | igual a DTCOTACAO · PCPEDIDO | só template |
+| 37 | `COTACAOPREVISTA` | — | 5.3 | igual a COTACAO · PCPEDIDO | só template |
+| 38 | `CODMOEDAAVISTA` | — | 220 | igual a CODMOEDA · PCPEDIDO | só template |
+| 39 | `COTACAOAVISTA` | — | 5.3 | igual a COTACAO · PCPEDIDO | só template |
+| 40 | `NUMPROFORMA` | — | 'TESTE' | igual a NUMINVOCE · PCPEDIDO | só template |
+| 41 | `DATALANC` | 2026.09.02 00:00:00 | SYSDATE | SYSDATE · PCPEDIDO | **diferente** |
+| 42 | `DTPREVENT` | Null | NULL | NULL · PCPEDIDO | igual |
+| 43 | `TRANSPORTE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 44 | `VLENTREGUE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 45 | `OBS` | Null | NULL | NULL · PCPEDIDO | igual |
+| 46 | `OBS2` | Null | NULL | NULL · PCPEDIDO | igual |
+| 47 | `OBS3` | Null | NULL | NULL · PCPEDIDO | igual |
+| 48 | `OBS4` | Null | NULL | NULL · PCPEDIDO | igual |
+| 49 | `OBS5` | Null | NULL | NULL · PCPEDIDO | igual |
+| 50 | `OBS6` | Null | NULL | NULL · PCPEDIDO | igual |
+| 51 | `OBS7` | Null | NULL | NULL · PCPEDIDO | igual |
+| 52 | `PRAZO1` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 53 | `PRAZO2` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 54 | `PRAZO3` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 55 | `PRAZO4` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 56 | `PRAZO5` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 57 | `PRAZO6` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 58 | `VLPRODUTO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 59 | `CODPLPAG` | Null | NULL | NULL · PCPEDIDO | igual |
+| 60 | `DTEMBARQUE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 61 | `VLFRETE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 62 | `DTLIBERA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 63 | `CODPARCELA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 64 | `NFIMPORTACAO` | 'S' | 'S' | 'S' · PCPEDIDO | igual |
+| 65 | `CALCPISCOFINSBASERED` | 'N' | 'N' | 'N' · PCPEDIDO | igual |
+| 66 | `ROTINALANC` | 3010.000000 | 3010 | 3010 · PCPEDIDO | igual |
+| 67 | `IMPORTACAO` | 'S' | 'S' | 'S' · PCPEDIDO | igual |
+| 68 | `UTILIZAICMSDIFZERADO` | 'N' | 'N' | 'N' · PCPEDIDO | igual |
+| 69 | `DTFATUR` | Null | NULL | NULL · PCPEDIDO | igual |
+| 70 | `CODFORNECRCA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 71 | `CODFORNECIMPORT` | Null | NULL | NULL · PCPEDIDO | igual |
+| 72 | `ORCAMENTO` | 'S' | 'S' | 'S' · PCPEDIDO | igual |
+| 73 | `PERCADIANTAMENTO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 74 | `PERCAVISTA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 75 | `DTVENC` | Null | NULL | NULL · PCPEDIDO | igual |
+| 76 | `EXPORTADO` | 'N' | 'N' | 'N' · PCPEDIDO | igual |
+| 77 | `CODTRANSITARIO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 78 | `CODDESPACHANTE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 79 | `CODSEGURADORA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 80 | `DTCHEGADA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 81 | `LOCALEMBARQUE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 82 | `DTCOMPROVIMPORT` | Null | NULL | NULL · PCPEDIDO | igual |
+| 83 | `DTEMISSAOCONHECEMBARQ` | Null | NULL | NULL · PCPEDIDO | igual |
+| 84 | `NUMCONHECEMBARQ` | Null | NULL | NULL · PCPEDIDO | igual |
+| 85 | `CANALCONFERENCIA` | 0.000000 | 0 | 0 · PCPEDIDO | igual |
+| 86 | `DTEMISSAODOCIMPORT` | Null | NULL | NULL · PCPEDIDO | igual |
+| 87 | `NUMDOCIMPORT` | Null | NULL | NULL · PCPEDIDO | igual |
+| 88 | `DTPREVNACIONALIZACAO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 89 | `CODTERMINALPORTUARIO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 90 | `DTEMISSAOPASTA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 91 | `NUMPASTA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 92 | `IDCONTROLEEMBARQUE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 93 | `DTNACIONALIZACAO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 94 | `CODFUNCLIBERA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 95 | `HORALIBERA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 96 | `MINUTOLIBERA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 97 | `DTENTRADAESTOQUE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 98 | `CODPLPAGADIANT` | Null | NULL | NULL · PCPEDIDO | igual |
+| 99 | `CODPLPAGAVISTA` | Null | NULL | NULL · PCPEDIDO | igual |
+| 100 | `MEIOTRANSPORTE` | Null | NULL | NULL · PCPEDIDO | igual |
+| 101 | `OCORRENCIAS` | Null | NULL | NULL · PCPEDIDO | igual |
+| 102 | `CONSMAIORICMSVLPAUTA` | 'N' | 'N' | 'N' · PCPEDIDO | igual |
+| 103 | `ISENTOST` | 'X' | 'X' | 'X' · PCPEDIDO | igual |
+| 104 | `CODPORTOORIGEM` | Null | NULL | NULL · PCPEDIDO | igual |
+| 105 | `CODCLIDEST` | Null | NULL | NULL · PCPEDIDO | igual |
+| 106 | `CODFORNECNOTIF` | Null | NULL | NULL · PCPEDIDO | igual |
+| 107 | `DOCIMPORTACAO` | Null | NULL | NULL · PCPEDIDO | igual |
+| 108 | `MODALIDADEPGTO` | — | NULL | NULL · PCPEDIDO | só template |
+| 109 | `CONSIPICALCBASEST` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 110 | `UTILIZADESCCALCST` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 111 | `CODFORNECFRETE` | — | NULL | NULL · PCPEDIDO | só template |
+| 112 | `DTCOTACAOAVISTA` | — | NULL | NULL · PCPEDIDO | só template |
+| 113 | `CODDESPACHANTE2` | — | NULL | NULL · PCPEDIDO | só template |
+| 114 | `MODALIDADEPGTOADIANT` | — | NULL | NULL · PCPEDIDO | só template |
+| 115 | `MODALIDADEPGTOPRAZO` | — | NULL | NULL · PCPEDIDO | só template |
+| 116 | `TIPODESCARGA` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 117 | `USADRAWBACK` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 118 | `DTLI` | — | NULL | NULL · PCPEDIDO | só template |
+| 119 | `DTDIFLI` | — | NULL | NULL · PCPEDIDO | só template |
+| 120 | `DTREGISTROCANAL` | — | NULL | NULL · PCPEDIDO | só template |
+| 121 | `DTZONASECUNDARIA` | — | NULL | NULL · PCPEDIDO | só template |
+| 122 | `DTENVIODESPACHANTE` | — | NULL | NULL · PCPEDIDO | só template |
+| 123 | `DTVISTORIAORGAOANUENTE` | — | NULL | NULL · PCPEDIDO | só template |
+| 124 | `UTILIZAFRETECALCICMS` | — | 'S' | 'S' · PCPEDIDO | só template |
+| 125 | `NUMTRANSENTN` | — | NULL | NULL · PCPEDIDO | só template |
+| 126 | `CODDOCIMP` | — | NULL | NULL · PCPEDIDO | só template |
+| 127 | `CONSCAPATAZIAICMS` | — | 'S' | 'S' · PCPEDIDO | só template |
+| 128 | `CODPARCELAORIGEM` | — | NULL | NULL · PCPEDIDO | só template |
+| 129 | `TIPOVENCORIGEM` | — | NULL | NULL · PCPEDIDO | só template |
+| 130 | `CONSIDERADTVENCRETOR` | — | NULL | NULL · PCPEDIDO | só template |
+| 131 | `DTFECHACAMBIO` | — | NULL | NULL · PCPEDIDO | só template |
+| 132 | `CONSIDERADTVENCRET` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 133 | `DESCREDICMSFCP3010` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 134 | `DEDUZIRCAPATAZIABASEII` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 135 | `DEDUZIRCAPATAZIABASEPISCOFINS` | — | 'N' | 'N' · PCPEDIDO | só template |
+| 136 | `DEDUZIRICMSDIFBASEICMSATECIP` | — | 'S' | 'S' · PCPEDIDO | só template |
+
+====================================================================================================
+DOCUMENTO 18/23: 05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
+====================================================================================================
+
+# Operação — Configuração e execução
+
+## 1. Variáveis (`api/.env`, modelo em `.env.example`)
+
+```text
+NODE_ENV                    development | production | test
+LOG_LEVEL                   info (padrão)
+PORT                        3010
+DB_HOST, DB_PORT            homologação: 172.20.20.13, 1521
+DB_USERNAME, DB_PASSWORD    usuário Oracle da aplicação
+DB_SERVICE_NAME             homologação: TESTE (não CDBTST)
+JWT_SECRET                  chave grande, por ambiente
+JWT_EXPIRATION_TIME         60m
+AUTH_REQUIRED_COD_SECTION   18 (IMPORTACAO, rotina 528)
+AUTH_REQUIRED_AREA_ACTING   vazio = só o setor
+COMEX_API_URL               http://127.0.0.1:8000  (127.0.0.1, não "localhost")
+COMEX_API_TIMEOUT_MS        120000
+GRAVACAO_3010_ATIVA         N = só prévia; S = grava (só na máquina de teste, por ora)
+```
+
+A subida recusa `.env` inválido ou incompleto. Os valores reais não são
+versionados nem documentados. O `.env` só é lido quando a API sobe: mudou,
+reinicie.
+
+## 2. Rodar (três terminais)
+
+```bash
+
+# 1. comex (a senha dos LASTs fica só neste terminal)
+
+cd ~/ww/comex-api && source .venv/bin/activate
+printf 'Senha dos LASTs: '; read -rs PLANILHA_SENHA; echo; export PLANILHA_SENHA
+uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+
+# 2. API
+
+cd ~/ww/pedido-3010/api
+fuser -k 3010/tcp 2>/dev/null        # derruba uma API antiga, se houver (EADDRINUSE)
+npm run start:dev                    # http://127.0.0.1:3010/api/docs
+
+# 3. tela
+
+cd ~/ww/pedido-3010/web && npm start # http://localhost:4200
+```
+
+```bash
+curl -s http://127.0.0.1:3010/api/v1/saude     # {"status":"ok","banco":true,"comex":true}
+```
+
+Ligar e desligar a gravação na máquina de teste:
+
+```bash
+sed -i 's/^GRAVACAO_3010_ATIVA=.*/GRAVACAO_3010_ATIVA=S/' ~/ww/pedido-3010/api/.env
+sed -i 's/^GRAVACAO_3010_ATIVA=.*/GRAVACAO_3010_ATIVA=N/' ~/ww/pedido-3010/api/.env
+```
+
+## 3. Testes (gate)
+
+```bash
+cd api
+npx jest                                  # unidade
+npx jest --config ./test/jest-e2e.json    # ponta a ponta
+npx tsc --noEmit -p tsconfig.json && npx eslint src && npm run build
+cd ../web && npm test && npm run build
+sh scripts/regra-regressao.sh --intervalo <inicio> HEAD
+```
+
+Os números atuais do gate estão em `00_STATUS/STATUS_PEDIDO_3010.md` (seção 3).
+
+Ensaio com um lote inteiro de LASTs (comex no ar):
+
+```bash
+PLANILHAS_DIR=/pasta/com/lasts COMEX_API_URL=http://127.0.0.1:8000 \
+  npx jest --config ./test/jest-e2e.json
+```
+
+## 4. Regras do repositório do código
+
+```text
+fix sem teste de regressão   recusado (gancho commit-msg local E no CI);
+                             a mensagem do commit diz "Teste de regressão: <arquivo>"
+rota sem Swagger             um teste falha
+rota nova que escreve        o teste da documentação falha (só a gravação escreve)
+instalar o gancho            sh scripts/instalar-ganchos.sh (uma vez por máquina)
+```
+
+## 5. Patches e GitHub
+
+As mudanças chegam como **patches numerados** (`0001` a `0053` em 25/09),
+aplicados em ordem com `git am`. A sincronia entre as máquinas é **pelo
+GitHub**:
+
+```text
+aplique cada patch SÓ na máquina em que você estiver, e faça git push em seguida
+na outra máquina, comece sempre por git pull --rebase
+o --rebase descarta sozinho commit que traz a mesma mudança já no GitHub
+```
+
+```bash
+cd ~/ww/pedido-3010
+git am /mnt/c/Users/cleilson.andrade/Downloads/00NN-*.patch
+git push
+git --no-pager log --oneline -3
+```
+
+Comandos git que mostram saída vão **sempre com `--no-pager`** (ou, de uma vez:
+`git config --global core.pager cat`). O push na `master` roda o CI (e o CD,
+quando o runner estiver configurado).
+
+Arquivo baixado de novo com o mesmo nome vira `NOME (1).md` no Windows:
+para pegar o mais novo, `ls -t "$D"/NOME*.md | head -1`.
+
+====================================================================================================
+DOCUMENTO 19/23: 05_OPERACAO/ROTEIRO_HOMOLOGACAO.md
+====================================================================================================
+
+# Operação — Roteiro de conferência na MIMO-HOMOLOG
+
+Roteiro que roda o **código da aplicação** contra a homologação e compara com
+três referências independentes:
+- o que a tela da 3010 gravou no PCITEM;
+- a planilha do time (de-para);
+- consultas diretas feitas pelo roteiro.
+
+Ele **só lê**, com duas travas:
+1. a conexão abre com `SET TRANSACTION READ ONLY`, e qualquer INSERT, UPDATE
+   ou DELETE dá erro no próprio Oracle;
+2. o roteiro recusa qualquer comando que não comece com SELECT ou WITH,
+   inclusive os que vêm do código da aplicação.
+
+No fim, desfaz a transação (ROLLBACK) e fecha a conexão.
+
+---
+
+## 1. Preparar (uma vez)
+
+```
+api/.env apontando para a homologação
+  DB_HOST=172.20.20.13   ← se for outro, o roteiro para (BASE_CONFIRMADA=S passa por cima)
+  DB_SERVICE_NAME, DB_USERNAME, DB_PASSWORD da MIMO-HOMOLOG
+  COMEX_API_URL=http://127.0.0.1:8000   (só se for testar a prévia, item 3.6)
+```
+
+## 2. Rodar
+
+**Terminal 1**: a API, com o mesmo `.env`:
+
+```bash
+cd api
+npm install
+npm run start:dev          # espera aparecer "Aplicação iniciada | porta 3010"
+```
+
+**Terminal 2**: o roteiro. O usuário e a senha são os do WinThor, de alguém
+do setor 18. Digite no terminal; **não salve em arquivo**.
+
+Linux ou WSL (a senha é pedida sem aparecer e não fica no histórico do terminal):
+
+```bash
+cd api
+[ -n "$HOMOLOG_SENHA" ] || { printf 'Senha do WinThor (homologação): '; read -rs HOMOLOG_SENHA; echo; export HOMOLOG_SENHA; }
+HOMOLOG_USUARIO=seu.usuario npm run homologacao
+```
+
+PowerShell:
+
+```powershell
+cd api
+$env:HOMOLOG_USUARIO="seu.usuario"
+$env:HOMOLOG_SENHA = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host 'Senha do WinThor' -AsSecureString)))
+npm run homologacao
+```
+
+Leva poucos minutos. No fim aparece o resumo e o nome do arquivo:
+
+```
+18 ok · 2 diferente · 0 erro · 7 info · 1 pulado
+Relatório: resultado-homologacao-2026-09-24-1015.md
+```
+
+**Mande esse `.md` de volta no chat.** Ele não leva senha nem token (o roteiro
+tira), mas leva NUMPED, CODPROD, custos e percentuais da homologação.
+
+### Opcional
+
+| Variável | Para quê | Padrão |
+|---|---|---|
+| `PLANILHA=/caminho/26MZC289F - Final Documents.xls` | item 3.6: a prévia inteira com um LAST de verdade (precisa do comex-api no ar) | pula |
+| `API_URL=nao` | só o banco, sem a API | `http://127.0.0.1:3010` |
+| `TOKEN=...` | usar um token do Swagger no lugar de usuário e senha | — |
+| `FILIAL` `FORNECEDOR` `PAIS` `PORTO` `PRODUTO` `MOEDA` | outro caso para os itens 1.3, 1.9, 2.13 e 3.5 (`PORTO` é o de **nacionalização**) | 4, 15, 1600, 1, 9018, 220 |
+| `INVOICE_REPETIDA` | outro caso para o item 2.12 | 26MCS415F |
+| `PEDIDOS_COMPARAR` | quantos pedidos no item 2.14 | 20 |
+| `TRANSACAO_SOMENTE_LEITURA=N` | só se aparecer ORA-01456 em algum item (alguma função do WinThor escrevendo); a trava do SELECT continua | S |
+
+---
+
+## 3. O que cada item confere
+
+Situação: **ok** confere · **DIFERENTE** não confere · **ERRO** não rodou
+(a mensagem diz por quê) · **info** sem valor esperado, só registro ·
+**pulado** faltou algo para rodar.
+
+| # | O que confere | Se der diferente |
+|---|---|---|
+| 1.1 | Qual base respondeu | Conferir se é mesmo a homologação |
+| 1.2 | Fuso do banco e do Node | Só registro |
+| 1.3 | Região padrão da filial 4 = 300 | A hipótese do `:NUMREGIAO` da tela cai: "sem preço na região" pode acusar errado |
+| 1.4 | Datas da cotação sem hora | A consulta da cotação (dia à meia-noite) pode não achar a cotação |
+| 1.5 | TIPOTRIBENTIMP e CON_USATRIBUTACAOPORUF | Só registro: são os valores do caminho que a consulta de impostos copiou |
+| 1.6 | País e porto iguais entre si nos pedidos de 2026 | Se houver pedidos, a escolha origem × procedência ou chegada × nacionalização importa: ver a lista |
+| 1.7 | Pedido 11681 (o do trace) nesta base | Só registro |
+| 1.8 | 11840 e 11841: mesma invoice, fornecedor e negociação | Rever a decisão D. Os valores reais substituem os ilustrativos dos testes |
+| 1.9 | CUSTOULTENT do 9018 na filial 4, hoje e por pedido | Evidência para o item 1 dos pontos em aberto (00_STATUS) (o 11723) |
+| 1.10 | Cotações com data mais de 7 dias no futuro | Dado errado na base (na 1ª rodada: 30/03/2105). Não é erro da aplicação, mas a tela nunca deve oferecer esse dia |
+| 1.11 | Formato do IDPEDIDOMASTER por filial e o PCNUMERADORIMP | Só registro: é o que a gravação (etapa 3) vai ter que gerar |
+| 1.12 | Cada CUSTOULTENT gravado para o 9018 procurado nos custos do PCEST de todas as filiais | Só registro: mostra de onde a tela tira o custo (item 1 dos pontos em aberto (00_STATUS)) |
+| 1.13 | Próximo número do PCNUMERADORIMP × maior master já usado no ano | A gravação geraria um master que já existe. Na homologação (2ª rodada): 406 × 1047 |
+| 1.14 | Pedidos do 9018 que são 2º do master (NUMPEDMASTERORIGEM) e se copiaram o custo do 1º | Só registro: explica custos que não batem com o PCEST da época |
+| 2.1 | Banco respondendo | — |
+| 2.2 a 2.6 | Listas de moedas, países, portos, fornecedores, compradores e vias | A consulta da tela não bate com esta base |
+| 2.7 | Cotação vem do **dia pedido**, não do anterior. Escolhe um dia até hoje cuja véspera tem cotação diferente | A correção do fuso não pegou. Se disser "é a do dia anterior", é o erro antigo |
+| 2.8 | Cotação de 19/07/2026 = 5,30 (a do trace) | Só se a base tiver esse dia |
+| 2.9 | Maior NUMNEGOCIACAO de 26 | Só registro |
+| 2.10 | BH26081/82/83 → 15708/15709/15710 | O de-para não acha o que a planilha do time diz |
+| 2.11 | De-para dos 1.941 códigos × planilha do time, separado em CODPROD diferente (com as duas descrições), ambíguo (com os candidatos) e não encontrado | A planilha parou em 06/08: olhar a lista, nem toda diferença é erro |
+| 2.12 | Invoice 26MCS415F → 11840 e 11841 (e o tempo) | A consulta da regra D não acha, ou está lenta |
+| 2.13 | Impostos do 9018: 20 / 6,5 / 2,1 / 9,65 | A consulta de impostos não reproduz a tela |
+| 2.14 | Impostos × PCITEM gravado pela tela nos últimos 20 pedidos, com emissão, quem lançou, histórico do produto e quantos itens cada campo "fora do cálculo" trava. Pedidos sem VLTOTAL (não parecem da tela) ficam fora e listados | Pelo histórico: se o valor mudou para todos a partir de uma data, foi o cadastro; se só um pedido destoa, alguém alterou na tela |
+| 2.15 | Campo a campo: consulta de impostos × PCITEM, nos mesmos itens do 2.14 | Só registro: campo que "não bate" em quase todos os itens não é copiado do cadastro pela tela, e não deve travar o item |
+| 2.16 | Pedidos com porto de chegada ≠ nacionalização: impostos com cada um × PCITEM | Só registro: diz qual porto a tela usa na tributação (2ª rodada: nacionalização, 6/6) |
+| 2.17 | O cálculo da aplicação × os valores que a tela gravou, item a item, só em 1º pedido: base, II, PIS, COFINS, IPI e custo; com frete também VLFRETE, PERCFRETE, despesa aduaneira, outros custos e AFRMM (valores e percentuais, repartidos pelo PESOLIQDI) e o VLTOTAL do pedido | O cálculo não reproduz a tela: ver os itens na lista |
+| 2.18 | O frete do pedido repartido entre os itens: por valor, por quantidade ou por cada coluna numérica do PCPRODUT | Só registro: a regra que explicar todos os pedidos é o rateio que o cálculo vai implementar |
+| 2.19 | Onde a tela guarda o frete total (o PCPEDIDO.VLFRETE veio vazio): colunas do PCPEDIDO e do PCCONTAINERS (ligado pelo IDCONTROLEEMBARQUE) com a soma; e se o PCITEM.PESOLIQDI é o do cadastro | Só registro: é onde a gravação vai escrever o frete |
+| 2.20 | Só nos **1º pedidos** com frete (os 2º têm valores da nota de entrada): o que falta no CUSTOULTPEDCOMPRA (por item) e no VLTOTAL (por pedido). Testa toda coluna do PCITEM e do PCPEDIDO, sozinha e em pares, com e sem cotação; se não bastar, trios entre as colunas de valor. Coluna nula num item vale 0. Mostra também, por pedido, o total de cada despesa (Σ QT × coluna), AFRMM ÷ frete e o que sobra no custo | Só registro: a fórmula achada vira teste do cálculo. Se nenhuma aparecer, o detalhe traz um 1º pedido com frete inteiro |
+| 2.21 | Cada pedido comparado: 1º ou 2º do master (NUMPEDMASTERORIGEM), se já teve entrada, se o VLTOTAL é o valor da entrada (VLENTREGUE) e se o II mudou em relação ao 1º | Pedido com frete que é 1º pedido: aí o frete importa para a aplicação, que só cria o 1º |
+| 2.22 | VLTOTAL: formas de arredondar (parcela × QT, item × QT, soma no fim, truncado, parcela antes do × QT) com os valores GRAVADOS, em cada 1º pedido | Só registro: a forma que bate em todos é a do cálculo; se for outra, o cálculo muda com teste |
+| 2.23 | Como a 3010 gravou em 2026 os campos do cabeçalho que a tela ainda não pede (frete, vencimento, embalagem, % a prazo, datas previstas, fornecedores fabricante e produtor, proforma, países) e o tamanho das colunas OBS | Só registro: decide se a tela ganha o campo ou se a gravação deduz |
+| 3.1 | `/saude` | A API não está no ar ou não vê o banco |
+| 3.2 | Login WinThor | Usuário fora do setor 18, senha errada, ou a consulta do login não bate com esta base · se pular, diz qual variável faltou |
+| 3.3 | `/cadastros/filiais` com a filial 4 | PCLIB do usuário |
+| 3.4 | `/cadastros/cotacao` pelo caminho inteiro | Igual ao 2.7, agora passando pelo DTO |
+| 3.5 | `/cadastros/impostos` pelo caminho inteiro | Igual ao 2.13 pela rota |
+| 3.6 | `/previa` com um LAST | Só com `PLANILHA=` apontando para um arquivo que existe e o comex-api no ar. Se não der 200, mostra a mensagem da API (ex.: o comex recusou a leitura) |
+
+---
+
+## 4. Depois
+
+O relatório vira evidência em `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md` (e o que mudou, no `CHANGELOG.md`). Cada **DIFERENTE** confirmado como
+erro vira correção **começando por um teste de regressão que falha**.
+
+Para o ensaio com o lote inteiro de planilhas (prévia de ponta a ponta), use
+o que já existe: `PLANILHAS_DIR=... npx jest --config ./test/jest-e2e.json`
+(05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).
+
+====================================================================================================
+DOCUMENTO 20/23: 05_OPERACAO/BASE_TESTE.md
+====================================================================================================
+
+# Operação — Base TESTE (MIMO-HOMOLOG)
+
+**Natureza:** procedimento, usado de verdade em 25/09. **Só na base TESTE.**
+Todo roteiro começa conferindo a base:
+
+```sql
+SELECT SYS_CONTEXT('USERENV', 'SERVICE_NAME') FROM DUAL;   -- teste
+```
+
+Rode **uma instrução por vez** (no DBeaver, Ctrl+Enter em cada): duas juntas
+numa execução dão ORA-00933.
+
+## 1. Numeradores
+
+A gravação usa dois:
+
+```text
+PCCONSUM.PROXNUMPED              NUMPED (todos os pedidos de compra)
+PCNUMERADORIMP.PROXNUMPEDIDO     master do ano (IDPEDIDOMASTER "número/FFAA")
+```
+
+Conferir:
+
+```sql
+SELECT PROXNUMPEDIDO FROM PCNUMERADORIMP WHERE ANO = '2026';
+SELECT MAX(TO_NUMBER(REGEXP_SUBSTR(IDPEDIDOMASTER, '^[0-9]+'))) FROM PCPEDIDO WHERE IDPEDIDOMASTER LIKE '%/__26';
+SELECT PROXNUMPED FROM PCCONSUM;
+SELECT MAX(NUMPED) FROM PCPEDIDO;
+```
+
+Acerto do master (maior em uso + 1, sem número digitado):
+
+```sql
+UPDATE PCNUMERADORIMP
+   SET PROXNUMPEDIDO = (SELECT MAX(TO_NUMBER(REGEXP_SUBSTR(IDPEDIDOMASTER, '^[0-9]+'))) + 1
+                          FROM PCPEDIDO WHERE IDPEDIDOMASTER LIKE '%/__26')
+ WHERE ANO = '2026';
+COMMIT;
+```
+
+Histórico: em 25/09 o master estava em 406 com 1048 em uso (a TESTE é cópia da
+produção, mas o numerador não veio junto); acertado para 1049. O PCCONSUM
+estava certo (11858 × 11857). **O PCCONSUM não se devolve**: numera todos os
+pedidos de compra, e outra aplicação pode ter usado números depois.
+
+## 2. LAST de teste
+
+Um LAST real com a **invoice trocada** (mantendo o "26" do ano), para gravar sem
+cair na decisão D. O LAST tem senha e preço de fornecedor: a troca é feita no
+Excel do time (Localizar e substituir na pasta de trabalho inteira), ou abrindo
+com a senha, trocando a célula e comparando célula por célula com o original
+(como foi feito com o 26MZC900F). Apague a cópia depois do teste.
+
+## 3. Primeiro pedido de teste (passo a passo)
+
+1. No `api/.env` **da sua máquina** (base TESTE): `GRAVACAO_3010_ATIVA=S`.
+   Nunca no servidor de produção antes de a QTSUGESTAO ser conferida.
+2. Suba o comex (com a `PLANILHA_SENHA`), a API e a tela.
+3. Solte o LAST de teste (26MPS900F: um LAST real com a invoice trocada).
+4. Preencha comprador, data da cotação 15/09/2026 (5,1696 na TESTE) e a
+   previsão de chegada; confira o resto.
+5. "Gravar na 3010" → "Confirmar e gravar". Deve aparecer o NUMPED e o master
+   (o primeiro deve ser `1049/0426`).
+6. Confira no banco:
+   ```sql
+   SELECT NUMPED, IDPEDIDOMASTER, NUMINVOCE, CODFORNEC, VLTOTAL, FUNCLANC, OBS7
+     FROM PCPEDIDO WHERE NUMPED = <o NUMPED que apareceu>;
+   SELECT NUMSEQ, CODPROD, QTPEDIDA, PCOMPRA, BASEPISCOFINSLIT, VLIMPORTACAO, CUSTOULTPEDCOMPRA
+     FROM PCITEM WHERE NUMPED = <o NUMPED> ORDER BY NUMSEQ;
+   ```
+   e abra o pedido na própria 3010: ele tem que aparecer como qualquer outro.
+7. Se der erro, **nada fica gravado** (a transação é desfeita); o log da API
+   diz o motivo. Erro de permissão (ORA-01031) quer dizer que o usuário da
+   API precisa de INSERT/UPDATE nessas tabelas e EXECUTE no PARAMFILIAL.
+
+## 4. Apagar pedido de teste
+
+Usado para apagar 11859, 11860 e 11861 antes do reteste do time. Lições:
+o gatilho `TRG_PCITEMLOG` (BEFORE DELETE OR UPDATE) grava o nome do programa
+em `PCITEMLOG.PROGRAMA` (40 caracteres) e **barra o DELETE vindo do DBeaver**,
+que se apresenta com um nome maior; `ALTER TRIGGER` **confirma sozinho** o que
+estiver pendente (é DDL); apagar o PCPEDIDO sem o PCITEM deixa **itens órfãos**.
+
+```sql
+SELECT SYS_CONTEXT('USERENV', 'SERVICE_NAME') FROM DUAL;          -- teste
+SELECT NUMPED, IDPEDIDOMASTER, NUMINVOCE, FUNCLANC FROM PCPEDIDO WHERE NUMPED IN (...);
+SELECT (SELECT COUNT(*) FROM PCMOV WHERE NUMPED IN (...)) ENTRADAS,
+       (SELECT COUNT(*) FROM PCITEM WHERE NUMPEDMASTERORIGEM IN (...)) SEGUNDO_PEDIDO FROM DUAL;  -- 0 e 0
+ALTER TRIGGER MIMOTESTE.TRG_PCITEMLOG DISABLE;
+ALTER TRIGGER MIMOTESTE.TRG_PCITEM_BIN DISABLE;
+DELETE FROM PCITEM   WHERE NUMPED IN (...);                         -- conferir o número
+DELETE FROM PCPEDIDO WHERE NUMPED IN (...);                         -- conferir o número
+COMMIT;                                                             -- ou ROLLBACK
+ALTER TRIGGER MIMOTESTE.TRG_PCITEMLOG ENABLE;                       -- SEMPRE, depois do COMMIT
+ALTER TRIGGER MIMOTESTE.TRG_PCITEM_BIN ENABLE;
+UPDATE PCNUMERADORIMP
+   SET PROXNUMPEDIDO = (SELECT MAX(TO_NUMBER(REGEXP_SUBSTR(IDPEDIDOMASTER, '^[0-9]+'))) + 1
+                          FROM PCPEDIDO WHERE IDPEDIDOMASTER LIKE '%/__26')
+ WHERE ANO = '2026';
+COMMIT;
+SELECT TRIGGER_NAME, STATUS FROM ALL_TRIGGERS WHERE TABLE_NAME = 'PCITEM' AND OWNER = 'MIMOTESTE';  -- todos ENABLED
+```
+
+O **PCCONSUM não volta**: ele numera todos os pedidos de compra, e outra
+aplicação pode ter usado números depois (o buraco na sequência não atrapalha).
+Os blocos da 3010 que rodaram na gravação (CUSTOREP e PESOLIQDI do PCPRODUT,
+PCPRODFILIAL, PCFORNEC, PCFORNECFILIAL) não são desfeitos: na TESTE, não precisa.
+
+## 5. Estado da TESTE depois de 25/09
+
+```text
+11858 (1049/0426, 26MZC900F)     fica, como referência (peso do 15710 ainda do cadastro)
+11859, 11860, 11861              apagados (itens e pedidos) para o reteste do time
+PCNUMERADORIMP 2026              1050
+PCCONSUM                         não devolvido (continua de onde estava)
+gatilhos do PCITEM               os 3 ENABLED (TRG_PCITEM_BIN, TRG_PCITEMLOG,
+                                 TRG_PCITEM_PCLISTAFALTA)
+```
+
+Lição de 25/09: apagar o PCPEDIDO com o DELETE do PCITEM barrado pelo gatilho
+deixou **12 itens órfãos**; foram apagados depois com os gatilhos desligados.
+Sempre apague o PCITEM **antes** e confira os dois números antes do COMMIT.
+
+====================================================================================================
+DOCUMENTO 21/23: 05_OPERACAO/SERVIDOR_E_PUBLICACAO.md
+====================================================================================================
+
+# Operação — Servidor e publicação
+
+**Natureza:** procedimento. **Ainda não executado na produção** (a API
+não foi publicada; a tela não tem publicação).
+
+## Preparar o srv-fedora-r450 (uma vez)
+
+Mesmo servidor e mesmo padrão do comex-api: runner self-hosted, PM2.
+
+### 1. Script de backup (como root)
+
+O CI e o CD chamam o script **como root** (o `mount -t cifs` exige). Por isso ele
+fica em `/root/scripts`, dono root — **nunca** aponte o sudoers para a cópia do
+repositório, senão qualquer commit rodaria comandos como root.
+
+```bash
+sudo cp scripts/backup/backup_srv181.sh /root/scripts/
+sudo chown root:root /root/scripts/backup_srv181.sh
+sudo chmod 700 /root/scripts/backup_srv181.sh
+```
+
+Usa o mesmo `/root/.smbcredentials_srv181` dos backups do GLPI. Log em
+`/var/log/backup_pedido3010.log`, com as frases "Iniciando" e
+"finalizado com sucesso" que o `backup_resumo.sh` já sabe ler.
+
+Para o log não crescer para sempre, some ao `/etc/logrotate.d/backup_glpi`:
+
+```
+/var/log/backup_pedido3010.log
+```
+
+### 2. Liberar só esse script para o usuário do runner
+
+```bash
+sudo visudo -f /etc/sudoers.d/backup-pedido3010
+```
+
+```
+admin ALL=(root) NOPASSWD: /root/scripts/backup_srv181.sh
+```
+
+Conferir: `sudo -n -l /root/scripts/backup_srv181.sh` (como admin) deve responder sem pedir senha.
+
+O script recusa subpasta com `..`, prefixo com símbolo, extensão diferente de
+`.bundle`/`.tar.gz` e quantidade fora de 1–99 (testado em `scripts/backup/testar-backup.sh`).
+
+### 3. Runner e secret
+
+- Runner self-hosted em `/home/admin/actions-runner-pedido-3010`, como os outros.
+- A aplicação mora em `/home/admin/apps/pedido-3010` (fora do `_work`).
+- Secret `ENV_FILE_CONTENTS` no GitHub com o `.env` de produção. O CD recusa
+  publicar se faltar `GRAVACAO_3010_ATIVA`.
+
+### 4. Voltar uma versão à mão
+
+Rápido (a anterior, no próprio servidor):
+
+```bash
+cd /home/admin/apps/pedido-3010
+rm -rf dist && cp -a dist.anterior dist && pm2 reload ecosystem.config.js --env production
+```
+
+Mais antiga (do srv181): pegue o `deploy_pedido3010_DD_MM_AA_HHMM.tar.gz` em
+`\\172.20.20.40\srv181$\pedido-3010\deploy`, extraia por cima da pasta e rode
+`npm ci --omit=dev` e o `pm2 reload`.
+
+Código (se o GitHub sumir): `git clone codigo_pedido3010_DD_MM_AA_HHMM.bundle pedido-3010`
+
+## CI/CD: backup e publicação
+
+Resumo do que os workflows do repositório do código fazem:
+
+```
+push em dev / staging / master
+  ↓ CI: regra do teste de regressão → testes → compilar
+  ↓ CI: .bundle com o histórico inteiro → \\172.20.20.40\srv181$\pedido-3010\codigo (30 cópias)
+push em master com CI verde
+  ↓ CD: versão no ar → dist.anterior + .tar.gz → srv181\pedido-3010\deploy (10 cópias)
+  ↓ CD: sem backup, NÃO troca a versão
+  ↓ CD: copia a nova, sobe no PM2, confere /api/v1/saude
+  ↓ CD: não respondeu em 60s → volta a anterior sozinho
+```
+
+====================================================================================================
+DOCUMENTO 22/23: CHANGELOG.md
+====================================================================================================
+
+# Changelog — Documentação do pedido-3010
+
+## 2026-09-28 — Repositório documental próprio
+
+- A documentação saiu da pasta `docs/` do repositório do código para este
+  repositório, `pedido-3010-docs`, no padrão do `amazon-winthor-integration-docs`:
+  `00_STATUS` a `05_OPERACAO`, README com cabeçalho de controle e ordem de
+  leitura, CHANGELOG e o consolidado gerado por `tools/regenerate_consolidated.py`.
+- O `CONTINUAR.md` foi substituído pelo `00_STATUS/STATUS_PEDIDO_3010.md`, que
+  inclui como retomar o projeto num chat novo.
+- As rodadas de homologação (§3 do antigo CONTINUAR) e as evidências do trace e
+  do banco (§5) viraram registro histórico em `03_VALIDACOES/`, com os ponteiros
+  trocados para os documentos novos.
+- A especificação da gravação foi dividida: fluxo (`02_FLUXOS`), validações
+  (`03_VALIDACOES`), as 309 colunas (`04_CONTRATOS`) e os roteiros da base TESTE
+  (`05_OPERACAO`).
+- Corrigido: o serviço da homologação é **TESTE** (textos antigos diziam CDBTST).
+- Registrado o que estava só na conversa de 25/09: as telas da 3010 com o 11858, o
+  trace da abertura do pedido (sem escrita; itens travados com FOR UPDATE NOWAIT),
+  o histórico de pesos dos 6 produtos do 26MSR296F e o roteiro de limpeza da TESTE
+  com as lições (gatilho do PCITEMLOG, DDL confirma sozinho, itens órfãos).
+- Os 7 pedidos sem item de testes do template (10483 a 10490), que eram um ponto
+  em aberto, aparecem como apagados.
+- No repositório do código, o patch **0054** tira a documentação de `docs/` (fica
+  um apontador), deixa o README curto e atualizado, troca as referências antigas no
+  código (comentários, Swagger, roteiro) e corrige o `.env.example` (serviço TESTE).
+  O CUSTOULTENT deixou de aparecer como "em aberto" no Swagger: foi fechado na 3ª
+  rodada.
+
+## 2026-09-25 — Gravação do 1º pedido e validação do time (0038 a 0053)
+
+- Roteiro 2.23: como a 3010 grava o cabeçalho do 1º pedido em 2026 (FRETE C,
+  TIPOVENC P, embalagem V, 100% a prazo em 767 de 775; OBS4, OBS6 e OBS7 nunca
+  usadas; proforma = invoice em 1.300 de 1.389) (0038, 0039).
+- Invoice gravada com tabulação escapava da checagem de invoice repetida:
+  `REGEXP_REPLACE` no lugar do `TRIM` (0040).
+- Gravação: montagem das 309 colunas com teste de ouro (0041), execução numa
+  transação só (0042), rota `POST /gravacao` conferindo tudo no servidor (0043),
+  peso PESOLIQ quando falta o PESOLIQDI (0044), SHA-256 na prévia (0045), tela da
+  gravação com confirmação (0046), numerador travado vira recusa clara (0047).
+- Numerador de master da TESTE acertado de 406 para 1049.
+- **Primeiro pedido gravado pela aplicação: 11858, master 1049/0426**; conferido
+  no banco e na 3010.
+- Motivo da invoice repetida decidido: OBS7 e log da aplicação.
+- Validação do time com 3 LASTs: avisos que não bloqueiam (0048), item repetido
+  somado e peso do LAST (0049), avisos na tela (0050), total FOB (0051), avisos do
+  comex dispensados (0052), aviso de peso acima de 10% (0053).
+- Pedidos 11859 a 11861 apagados da TESTE para o reteste.
+
+## 2026-09-24 — Cálculo do 1º pedido fechado e tela, partes 1 a 4 (0016 a 0037)
+
+- Rodadas 4ª a 12ª: frete e despesas do 1º pedido deduzidos do 11841 (a hipótese
+  "frete só no 2º pedido" caiu na 6ª rodada); AFRMM como total informado; VLTOTAL
+  pela regra "parcela × QT a 2 casas", com tolerância de 2 centavos decidida.
+- 17ª rodada: o backend inteiro contra a homologação (21 ok).
+- Rota de cálculo `POST /calculo/pedido` (0027).
+- Tela em `web/` (Angular 21): entrar e conferir LASTs (0029), escolher o produto
+  na linha trocada e no ambíguo (0030), pedido já lançado agrupado por master
+  (0033, 0034), dados do pedido (0035), negociação pela regra A (0037).
+- Especificação da gravação conferida contra o template (PCITEM 97 de 100,
+  PCPEDIDO 96 de 100 iguais ao trace).
+
+## 2026-09-23 — Homologação começa (0001 a 0015)
+
+- Cotação caía no dia anterior (data ia ao Oracle como `Date`): datas passam a ir
+  como texto em `TO_DATE` (0001).
+- Regra A da negociação (0002, 0003), pedidos com a mesma invoice (0004), impostos
+  do cadastro por item (0005), roteiro de homologação (0006).
+- Rodadas 1ª a 3ª: IDPEDIDOMASTER é texto (0007); tributação pelo porto de
+  nacionalização (0010); CUSTOULTENT do PCEST no 1º pedido; frete rateado por
+  PESOLIQDI × QT (0014).
+
+## 2026-09-22 — Etapa 1 (prévia) e decisões iniciais
+
+- Decisões 1 a 12, A e D (`01_ARQUITETURA/DECISOES.md`).
+- Prévia só de leitura: login WinThor (setor 18), leitura pelo comex, de-para,
+  regra código × descrição, cadastros.
+
+====================================================================================================
+DOCUMENTO 23/23: README.md
+====================================================================================================
+
+# Documentação — pedido-3010 (pedido master de importação na rotina 3010)
+
+**Projeto:** `pedido-3010`
+**Branch acompanhada:** `master`
+**Data de referência:** 2026-09-28
+**HEAD acompanhado:** `8553401 docs: aviso de peso acima de 10%`
+**HEAD remoto acompanhado:** `origin/master` em `8553401`
+**Situação do checkpoint:** gravação do 1º pedido validada na homologação (base TESTE); produção bloqueada até a QTSUGESTAO ser conferida
+**Serviços consumidos:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor
+
+---
+
+<!-- DOC_VALIDACAO_TIME_2026_09_25:start -->
+
+### Checkpoint atual — primeiro pedido gravado e validação do time da importação
+
+Em 2026-09-25 a aplicação gravou o primeiro pedido na homologação:
+
+```text
+NUMPED           11858
+IDPEDIDOMASTER   1049/0426
+invoice          26MZC900F (LAST real com a invoice trocada)
+itens            3
+VLTOTAL          84.059,54
+```
+
+Conferido no banco (valores até a 6ª casa, numeradores, CUSTOREP do PCPRODUT
+atualizado pelos blocos da 3010) e aberto na própria 3010 sem erro.
+
+No mesmo dia o time da importação gravou 3 LASTs da semana e apontou: peso
+líquido diferente do LAST, item repetido gravado duas vezes, e quatro avisos do
+comex que não usa. As correções entraram em:
+
+```text
+0048 feat   prévia avisa o que não bloqueia
+0049 fix    gravação soma o item repetido e grava o peso líquido do LAST
+0050 feat   tela mostra os avisos
+0051 fix    aviso do total FOB quando falta a soma do LAST
+0052 feat   prévia dispensa os avisos do comex que o time não usa
+0053 feat   aviso quando o peso do LAST difere mais de 10% do cadastro
+```
+
+O reteste com o código corrigido está pendente. Essa validação **não equivale a
+publicação em produção**: a API rodava na máquina de teste, com a gravação ligada
+só no `.env` local.
+<!-- DOC_VALIDACAO_TIME_2026_09_25:end -->
+
+## 1. Objetivo
+
+Ler os LASTs da fábrica e gravar o **pedido master de importação na rotina 3010**
+do WinThor, no lugar do lançamento à mão, com prévia e travas antes de gravar.
+
+```text
+usuário do setor 18 (IMPORTACAO), com usuário e senha do WinThor
+   |
+   v
+tela (Angular)  ->  solta os LASTs
+   |
+   v
+pedido-3010 API
+   |
+   |-- comex-api: lê a planilha e arredonda o preço como na invoice
+   |-- de-para código de fábrica -> CODPROD
+   |-- regras: código × descrição, negociação, invoice repetida, item repetido, peso
+   |-- PRÉVIA: pendências (bloqueiam) e avisos (não bloqueiam)
+   |
+   |   o usuário escolhe filial, fornecedor, comprador, cotação, negociação, datas
+   v
+gravação na 3010 numa transação só (chave GRAVACAO_3010_ATIVA)
+   |
+   v
+WinThor: PCPEDIDO + PCITEM + os blocos que a 3010 roda depois de gravar
+```
+
+A aplicação **não substitui a 3010**: grava o 1º pedido do master exatamente como
+a 3010 grava; o 2º pedido continua sendo criado pela própria 3010.
+
+## 2. Estado validado
+
+- a prévia lê os LASTs pelo comex, resolve o de-para e aplica as regras; nenhuma
+  rota além da gravação escreve no banco (há teste);
+- o cálculo do 1º pedido reproduz a homologação: 71 de 71 itens, VLTOTAL a até 2
+  centavos;
+- a gravação monta as 309 colunas como a 3010 (teste de ouro contra o template e
+  o trace) e grava numa transação só, conferindo tudo de novo no servidor;
+- a tela coleta o que o pedido precisa e grava com confirmação;
+- a gravação foi validada na homologação (11858); **não foi publicada em
+  produção**.
+
+### Gate (25/09)
+
+```text
+API unidade        318 / 318 PASS
+API ponta a ponta  48 PASS, 2 pulados
+tela               69 / 69 PASS
+tsc / eslint / build        PASS
+regra do teste de regressão PASS
+```
+
+## 3. Evidência de referência
+
+O pedido 11681, lançado pela própria 3010 com trace, é a referência de tudo o que
+a gravação reproduz (sequência, colunas, blocos PL/SQL):
+`03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`.
+
+## 4. Onde começar
+
+Leia nesta ordem:
+
+1. `00_STATUS/STATUS_PEDIDO_3010.md`
+2. `01_ARQUITETURA/VISAO_GERAL.md`
+3. `01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md`
+4. `01_ARQUITETURA/AUTENTICACAO_WINTHOR.md`
+5. `01_ARQUITETURA/DECISOES.md`
+6. `02_FLUXOS/PREVIA_DOS_LASTS.md`
+7. `02_FLUXOS/CALCULO_DO_PEDIDO.md`
+8. `02_FLUXOS/GRAVACAO_NA_3010.md`
+9. `02_FLUXOS/TELA_DE_CONFERENCIA.md`
+10. `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
+11. `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
+12. `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
+13. `03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
+14. `03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
+15. `04_CONTRATOS/CONTRATO_COMEX_API.md`
+16. `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
+17. `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
+18. `05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
+19. `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
+20. `05_OPERACAO/BASE_TESTE.md`
+21. `05_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
+
+`CHANGELOG.md` registra a evolução documental.
+
+## 5. Regra documental
+
+A documentação distingue comportamento **observado em runtime** (homologação),
+**contrato coberto por teste**, **decisão** e **limite ainda não validado**.
+Cada documento diz sua natureza no começo.
+
+Não transformar evidência de um pedido ou de um LAST específico em regra universal
+do WinThor ou da 3010. Quando for hipótese, dizer que é hipótese, e registrar
+quando ela cair.
+
+Não registrar senha, `.env` real, preço de fornecedor nem LAST neste repositório.
+
+`DOCUMENTACAO_ATIVA_COMPLETA.txt` é derivado dos documentos canônicos e deve ser
+regenerado com `tools/regenerate_consolidated.py`.
+
+## 6. De onde veio cada documento
+
+Até 2026-09-25 a documentação ficava na pasta `docs/` do repositório do código:
+
+```text
+docs/CONTINUAR.md    §0-§2   -> 00_STATUS/STATUS_PEDIDO_3010.md, 01_ARQUITETURA/VISAO_GERAL.md
+                     §3      -> 03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
+                     §4      -> 01_ARQUITETURA/DECISOES.md
+                     §5      -> 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
+                     §6-§9   -> 00_STATUS/STATUS_PEDIDO_3010.md, 05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
+docs/GRAVACAO.md             -> 02_FLUXOS/GRAVACAO_NA_3010.md, 03_VALIDACOES/*,
+                                04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md, 05_OPERACAO/BASE_TESTE.md
+docs/HOMOLOGACAO.md          -> 05_OPERACAO/ROTEIRO_HOMOLOGACAO.md
+docs/SERVIDOR.md             -> 05_OPERACAO/SERVIDOR_E_PUBLICACAO.md
+```
+
+O `CONTINUAR.md` deixou de existir: o `00_STATUS` faz o papel dele, inclusive o de
+retomar o projeto num chat novo.
