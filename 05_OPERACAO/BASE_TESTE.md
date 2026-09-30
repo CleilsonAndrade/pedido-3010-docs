@@ -54,7 +54,8 @@ com a senha, trocando a célula e comparando célula por célula com o original
 ## 3. Primeiro pedido de teste (passo a passo)
 
 1. No `api/.env` **da sua máquina** (base TESTE): `GRAVACAO_3010_ATIVA=S`.
-   Nunca no servidor de produção antes de a QTSUGESTAO ser conferida.
+   A `QTSUGESTAO` foi conferida em 30/09; em produção, manter a chave desligada
+   até a decisão explícita de publicação e ativação.
 2. Suba o comex (com a `PLANILHA_SENHA`), a API e a tela.
 3. Solte o LAST de teste (26MPS900F: um LAST real com a invoice trocada).
 4. Preencha comprador, data da cotação 15/09/2026 (5,1696 na TESTE) e a

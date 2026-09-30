@@ -474,6 +474,59 @@ e **a prévia com um LAST de verdade**:
 - Nome de LAST com **espaço não separável** (o `ls -b` mostra sem a barra):
   digitar o nome não funciona; usar curinga (`ls ../lasts/26MZC289F*`).
 
+## Homologação, 18ª rodada (30/09): QTSUGESTAO FECHADA
+
+Rodada focada contra a base TESTE, em transação somente leitura, já com o código
+final `b813ceb`:
+
+```text
+NUMPED_QTSUGESTAO=11866 API_URL=nao npm run homologacao
+
+16 ok · 5 diferente · 0 erro · 17 info · 2 pulado
+```
+
+O pedido **11866** foi lançado manualmente pela própria rotina 3010, filial 4,
+fornecedor 15. O item 2.24 reproduziu a `QTSUGESTAO` em **2 de 2 itens**:
+
+```text
+8360   1 × (150 + 21) - 925 = -754
+11190  10 × (150 + 21) - 0 = 1710
+```
+
+Resultado do roteiro:
+
+```text
+pedido 11866 · 2 item(ns) · pendente não considerado ·
+conta-base reproduz 2/2
+```
+
+A regra fechada para o caminho homologado é:
+
+```text
+QTSUGESTAO =
+    PCEST.QTGIRODIA
+    × (PCFORNEC.PRAZOENTREGA + PCPRODUT.TEMREPOS)
+    - PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
+```
+
+O resultado negativo é preservado. Testes manuais na própria
+PCSIS3010 v37.0.08.071 também mostraram que `QTVEZES` não altera a conta-base
+observada e que prazo/tempo de reposição positivos informados na tela substituem
+os valores de cadastro.
+
+A filial 4 possui `CONSIDERAESTPENDSUGCOMPRA='N'`. A TESTE não forneceu caso
+com `'S'`; por isso esse ramo continua não homologado e a API o recusa.
+
+Os **5 DIFERENTE** desta rodada pertencem às verificações já conhecidas do
+roteiro e não representam regressão da `QTSUGESTAO`.
+
+Código relacionado:
+
+```text
+c96e389  fix: usa PCEST na validacao da QTSUGESTAO
+b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
+```
+
 ## Ainda não rodou de verdade (atenção)
 
 - **CI/CD nunca rodou** no GitHub nem no runner. O `mount` no .40 também não

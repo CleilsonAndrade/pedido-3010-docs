@@ -34,7 +34,7 @@ citada nos commits e nos testes.
 | — | Porto da tributação | **Porto de nacionalização** (PCPEDIDO.CODPORTONACIONALIZACAO), não o de chegada | homologação: pedido 9726, 6/6 × 0/6 |
 | — | VLTOTAL do 1º pedido | Regra "parcela × QT a 2 casas"; **diferença de até 2 centavos aceita** (8 de 11 exatos, 3 a 1-2 centavos: arredondamento da própria tela). O contas a pagar nasce do 2º pedido | Cleilson, 24/09 |
 | — | Filial e comprador na tela | Escolhidos a cada pedido; a tela **não** lembra a última escolha (só marca a filial sozinha quando o usuário tem uma só na PCLIB) | Cleilson, 24/09 |
-| — | QTSUGESTAO | **Calcular como a 3010** (a conta final não aparece no trace: conferir na prática, ver `02_FLUXOS/GRAVACAO_NA_3010.md`) | Cleilson, 24/09 |
+| — | QTSUGESTAO | **Calcular como a 3010 no caminho homologado**: `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`; preservar resultado negativo; `QTVEZES` não entra na conta-base observada; filial com `CONSIDERAESTPENDSUGCOMPRA='S'` é recusada até esse ramo ser homologado | homologação 30/09, pedido 11866 |
 | — | PCFORNECFILIAL na gravação | **Igual à 3010**: todos os fornecedores nas filiais que faltam (fora a 99) | Cleilson, 24/09 |
 | — | Motivo da invoice repetida | **Nos dois**: **OBS7** ("Invoice repetida: ...", 100 caracteres; OBS4, OBS6 e OBS7 nunca usadas em 2026) e log da aplicação | Cleilson, 24 e 25/09 |
 | — | Item repetido no LAST | Uma linha só por produto, com a quantidade somada; preços diferentes vão pela **média ponderada** (mantém o total da invoice), com aviso mostrando os preços e a média | Time da importação, 25/09 |
@@ -51,6 +51,6 @@ citada nos commits e nos testes.
 ```text
 qual ação da 3010 gera o 2º pedido do master (não bloqueia o 1º)
 onde a 3010 guarda os totais de frete e despesas (precisa de trace)
-QTSUGESTAO: a conta (decidido calcular como a 3010; falta conferir na prática)
+QTSUGESTAO com CONSIDERAESTPENDSUGCOMPRA='S': homologar esse ramo antes de habilitar
 custo com o frete em dólar sem converter: replicar (hoje) ou corrigir (avisar o time)
 ```

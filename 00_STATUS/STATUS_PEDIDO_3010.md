@@ -1,12 +1,12 @@
 # STATUS — pedido-3010
 
 **Status documental:** ATUAL
-**Data de referência:** 2026-09-28
+**Data de referência:** 2026-09-30
 **Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
 **Branch:** `master`
-**HEAD acompanhado:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055 preparado)
-**Remoto acompanhado:** `origin/master` em `20fe04e` (0055 ainda não aplicado/publicado)
-**Estado:** etapa 3 (gravação do 1º pedido) validada na homologação; produção **bloqueada** (`GRAVACAO_3010_ATIVA=N`) até a QTSUGESTAO ser conferida
+**HEAD acompanhado:** `b813ceb feat: calcula QTSUGESTAO como a rotina 3010`
+**Remoto acompanhado:** `origin/master` em `b813ceb`
+**Estado:** etapa 3 validada na homologação; `QTSUGESTAO` homologada e implementada; produção ainda não publicada e protegida por `GRAVACAO_3010_ATIVA`
 **Serviços:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor (base TESTE na homologação)
 
 ---
@@ -69,7 +69,7 @@ código corrigido está pendente**.
 etapa 1   prévia (só leitura)                      FEITA
 etapa 2   tela de conferência, partes 1 a 5        FEITA (impostos editáveis e frete: depois)
 etapa 3   gravação do 1º pedido sem frete          FEITA, validada na homologação
-etapa 4   produção                                 PENDENTE (QTSUGESTAO; publicação da tela)
+etapa 4   produção                                 PENDENTE (publicação da tela e decisão de habilitar gravação)
 ```
 
 O que está validado e com que evidência:
@@ -83,9 +83,10 @@ peso e item repetido       regras novas cobertas por teste; reteste do time pend
 
 ## 2. Patches
 
-Aplicados em ordem com `git am` sobre o pacote original. O GitHub está em
-`origin/master = 20fe04e` com o 0054. O **0055 está preparado neste checkpoint**,
-mas ainda precisa ser aplicado/publicado na máquina em uso.
+Aplicados em ordem com `git am` sobre o pacote original. O histórico abaixo
+mantém a sequência 0001 a 0055. O patch **0055 foi aplicado** e abriu a
+investigação da `QTSUGESTAO`; o fechamento posterior entrou nos commits
+`c96e389` e `b813ceb`. O remoto atual está em `origin/master = b813ceb`.
 
 ### Etapa 1 e homologação: regras, prévia, impostos e o roteiro (23/09)
 
@@ -172,12 +173,78 @@ mas ainda precisa ser aplicado/publicado na máquina em uso.
       (+ git rm dos 4 documentos antigos de docs/, fora do patch)
 ```
 
-### Fechamento da QTSUGESTAO (28/09)
+### Fechamento da QTSUGESTAO (28 a 30/09)
+
+O patch 0055 abriu a investigação em modo somente leitura. A hipótese inicial
+incluía `QTVEZES`, mas ela caiu após testes manuais na própria
+**PCSIS3010 v37.0.08.071**.
+
+Pedido nativo de referência:
 
 ```text
-0055  feat: roteiro 2.24 recebe NUMPED de pedido da 3010, lê estoque/giro/prazos/
-      pendência/mínimo/múltiplo e infere a QTVEZES para testar a conta gravada
-      (somente leitura; não muda a QTSUGESTAO da aplicação)
+NUMPED              11866
+CODFILIAL           4
+CODFORNEC           15
+ROTINALANC          3010
+CONSIDERAESTPENDSUGCOMPRA = N
+```
+
+Conta homologada para esse caminho:
+
+```text
+ESTOQUE_IDEAL =
+    QTGIRODIA × (PRAZOENTREGA + TEMREPOS)
+
+QTSUGESTAO =
+    ESTOQUE_IDEAL - ESTOQUE_DISPONIVEL
+```
+
+Fontes usadas pela implementação:
+
+```text
+QTGIRODIA            PCEST.QTGIRODIA
+PRAZOENTREGA         PCFORNEC.PRAZOENTREGA
+TEMREPOS             PCPRODUT.TEMREPOS
+ESTOQUE_DISPONIVEL   PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
+```
+
+Casos reais do pedido 11866:
+
+```text
+8360   1 × (150 + 21) - 925 = -754
+11190  10 × (150 + 21) - 0 = 1710
+```
+
+O roteiro 2.24 reproduziu **2 de 2 itens**, com diferença zero.
+
+Conclusões do caminho homologado:
+
+```text
+QTVEZES                         não entra na conta-base observada
+QTSUGESTAO negativa             é preservada
+QTMINSUGCOMPRA/MULTIPLOCOMPRAS  sem caso positivo observado na filial 4
+pendência de compra             filial 4 não considera
+```
+
+A base TESTE não possui filial com
+`CONSIDERAESTPENDSUGCOMPRA='S'`. Esse ramo continua **não homologado**; a API
+recusa a gravação nesse cenário em vez de assumir uma fórmula.
+
+Código final:
+
+```text
+c96e389  fix: usa PCEST na validacao da QTSUGESTAO
+b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
+```
+
+Validação final do `b813ceb`, em transação somente leitura:
+
+```text
+16 ok · 5 diferente · 0 erro · 17 info · 2 pulado
+
+2.24
+pedido 11866 · 2 item(ns) · pendente não considerado ·
+conta-base reproduz 2/2
 ```
 
 Fora da sequência: `comex-api-rota-leitura.patch` e
@@ -211,9 +278,8 @@ Roteiros: `05_OPERACAO/BASE_TESTE.md`.
 ## 5. Em aberto
 
 ```text
-QTSUGESTAO        item 2.24 preparado no patch 0055. Falta lançar um pedido PELA 3010
-                  na TESTE e rodar `NUMPED_QTSUGESTAO=<n> API_URL=nao npm run homologacao`.
-                  A conta continua hipótese até essa evidência; é o que bloqueia produção.
+QTSUGESTAO/S      filial com CONSIDERAESTPENDSUGCOMPRA='S' ainda não homologada;
+                  a API recusa esse ramo até existir evidência da 3010.
 2º pedido         qual ação da 3010 o gera e por que o VLTOTAL muda (não bloqueia)
 frete e despesas  onde a 3010 guarda os totais, em que moeda se digita o frete, se o
                   AFRMM é digitado: precisa do trace de um lançamento com despesas
@@ -232,12 +298,12 @@ backups do .40    teste de restauração pendente; MSSRV005 no Ubuntu 18.04
 ```text
 1. reteste do time com os 3 LASTs (26MIW185F, 26MOC267F, 26MSR296F) no ambiente novo
    de teste; conferir PJ10PCM numa linha e os pesos do LAST (VALIDACAO_TIME, seção 7)
-2. QTSUGESTAO: aplicar o 0055; lançar um pedido pela 3010 na TESTE; rodar o item 2.24
-   com o NUMPED e fechar a conta (`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`)
-3. impostos editáveis na tela
-4. frete e despesas (depois do trace)
-5. publicação da tela
-6. produção: GRAVACAO_3010_ATIVA=S por decisão, primeiro para um usuário
+2. impostos editáveis na tela
+3. frete e despesas (depois do trace)
+4. publicação da tela
+5. produção: GRAVACAO_3010_ATIVA=S por decisão, primeiro para um usuário
+6. se aparecer filial com CONSIDERAESTPENDSUGCOMPRA='S', homologar esse ramo
+   antes de permitir gravação nela
 ```
 
 ## 7. Como trabalhar neste projeto

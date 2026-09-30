@@ -1,5 +1,25 @@
 # Changelog — Documentação do pedido-3010
 
+## 2026-09-30 — QTSUGESTAO homologada e implementada
+
+- Pedido nativo **11866**, lançado pela própria 3010 na TESTE, reproduziu a
+  conta-base em **2 de 2 itens**.
+- Regra homologada para filial que não considera estoque pendente:
+  `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`.
+- `QTVEZES` não entrou na conta-base observada; teste manual com valor 2 manteve
+  o mesmo estoque ideal e a mesma `QTSUGESTAO`.
+- Testes manuais também confirmaram a sobrescrita de prazo e tempo de reposição
+  quando esses valores são informados na tela da 3010.
+- A implementação usa `PCEST.QTGIRODIA`, `PCFORNEC.PRAZOENTREGA`,
+  `PCPRODUT.TEMREPOS` e
+  `PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')`.
+- Resultado negativo é preservado.
+- Filial com `CONSIDERAESTPENDSUGCOMPRA='S'` continua não homologada e é recusada
+  pela API em vez de receber regra presumida.
+- Código: `c96e389` e `b813ceb`.
+- Homologação final do `b813ceb`: **16 ok · 5 diferente · 0 erro · 17 info ·
+  2 pulado**; item 2.24 reproduziu 2/2 itens.
+
 ## 2026-09-28 — Roteiro de descoberta da QTSUGESTAO (0055)
 
 - Preparado o item 2.24 do roteiro, acionado por `NUMPED_QTSUGESTAO`, para um

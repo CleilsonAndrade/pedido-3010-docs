@@ -1,177 +1,267 @@
-# Validação — roteiro da QTSUGESTAO da rotina 3010
+# Validação — QTSUGESTAO da rotina 3010
 
-**Natureza:** procedimento de descoberta preparado; ainda sem resultado real
-**Data de referência:** 2026-09-28
-**Código que prepara o item:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055)
-**Bloqueio atual:** produção continua bloqueada; a aplicação continua gravando `QTSUGESTAO = 0` até esta conta ser fechada por evidência
+**Natureza:** validação concluída para o caminho homologado
+**Data de referência:** 2026-09-30
+**Código implementado:** `b813ceb feat: calcula QTSUGESTAO como a rotina 3010`
+**Correção de apoio:** `c96e389 fix: usa PCEST na validacao da QTSUGESTAO`
+**Caso nativo de referência:** pedido 11866, filial 4, fornecedor 15
 
 ---
 
 ## 1. Objetivo
 
-Descobrir e confirmar, com um pedido **lançado manualmente pela própria 3010** na
-base TESTE, a conta final que a rotina usa para gravar `PCITEM.QTSUGESTAO`.
+Confirmar com um pedido lançado manualmente pela própria 3010, na base TESTE, a
+conta usada para gravar `PCITEM.QTSUGESTAO` e implementar somente o caminho
+comprovado por evidência.
 
-O trace já mostrou a estrutura da sugestão, mas cortou os valores dos parâmetros
-de prazo e do fator `QTVEZES`. Por isso este roteiro não transforma a hipótese em
-regra: ele lê o resultado que a 3010 gravou e tenta reconstruir a conta para cada
-item.
+A investigação começou no patch 0055. A hipótese inicial incluía `QTVEZES`, mas
+os testes manuais na própria 3010 mostraram que esse fator não participa da
+conta-base observada neste caminho.
 
-## 2. O que já é evidência do trace
+## 2. Regra homologada
 
-```text
-ESTOQUE        = PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
-QTGIRODIA      = giro diário (ESTCONSOLIDADO)
-M_ESTIDEAL     = QTGIRODIA × (prazo de entrega + tempo de reposição) × QTVEZES
-QTPENDENTE     entra quando PCFILIAL.CONSIDERAESTPENDSUGCOMPRA = 'S'
-QTMINSUGCOMPRA e MULTIPLOCOMPRAS participam do caminho da sugestão
-```
-
-No pedido do trace, o produto 9018 ficou com `QTSUGESTAO = -2316`. Isso mostra
-que a 3010 aceita sugestão negativa; não autoriza, sozinho, concluir toda a
-fórmula.
-
-## 3. Hipótese que o item 2.24 testa
-
-Para cada item:
+Para filial que **não considera estoque pendente na sugestão de compra**:
 
 ```text
-base = QTGIRODIA × (PRAZOENTREGA + TEMREPOS)
+ESTOQUE_IDEAL =
+    QTGIRODIA × (PRAZOENTREGA + TEMREPOS)
 
-se CONSIDERAESTPENDSUGCOMPRA = 'S':
-    QTSUGESTAO = base × QTVEZES - ESTOQUE - QTPENDENTE
-
-senão:
-    QTSUGESTAO = base × QTVEZES - ESTOQUE
+QTSUGESTAO =
+    ESTOQUE_IDEAL - ESTOQUE_DISPONIVEL
 ```
 
-Para não chutar `QTVEZES`, o roteiro resolve a conta ao contrário:
+Fontes usadas pela implementação:
 
 ```text
-sem pendente: QTVEZES = (QTSUGESTAO + ESTOQUE) / base
-com pendente: QTVEZES = (QTSUGESTAO + ESTOQUE + QTPENDENTE) / base
+QTGIRODIA            PCEST.QTGIRODIA
+PRAZOENTREGA         PCFORNEC.PRAZOENTREGA
+TEMREPOS             PCPRODUT.TEMREPOS
+ESTOQUE_DISPONIVEL   PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
 ```
 
-Ele agrupa os fatores inferidos com quatro casas **apenas para encontrar o grupo
-mais comum**; ao recalcular a sugestão usa o valor real inferido, sem limitar a
-quatro casas.
+O resultado negativo é preservado.
 
-Os candidatos usados nesta primeira rodada são `PCFORNEC.PRAZOENTREGA` para o
-prazo do fornecedor e `PCPRODUT.TEMREPOS` para o tempo de reposição. Isso é
-hipótese operacional baseada no caminho já levantado e precisa ser confirmada
-pelo resultado. Se a conta não fechar, uma das primeiras coisas a investigar é
-se a 3010 usa algum prazo substituto/específico do item.
+## 3. Pedido nativo usado como referência
 
-## 4. Como gerar o pedido de referência
+Pedido criado pela própria rotina 3010:
 
-Na base TESTE:
+```text
+NUMPED              11866
+CODFILIAL           4
+CODFORNEC           15
+ROTINALANC          3010
+CONSIDERAESTPENDSUGCOMPRA = N
+```
 
-1. abrir a rotina 3010;
-2. lançar manualmente um pedido de compra normal, pelo caminho que o time usa;
-3. preferir **2 ou mais produtos**, para que um fator comum possa ser testado;
-4. se possível, incluir produtos com `QTMINSUGCOMPRA` ou `MULTIPLOCOMPRAS`
-   preenchidos, pois isso ajuda a revelar ajuste posterior à conta-base;
-5. gravar o pedido e anotar o `NUMPED`;
-6. rodar o item 2.24 logo em seguida, porque estoque, pendência e giro são dados
-   vivos e podem mudar.
+Itens:
 
-Não usar para essa evidência um pedido criado pela aplicação: precisamos observar
-o resultado da **3010**, que é justamente a referência a reproduzir.
+```text
+produto 8360
+QTGIRODIA           1
+PRAZOENTREGA        150
+TEMREPOS            21
+ESTOQUE             925
+QTPENDENTE          6
+QTSUGESTAO gravada  -754
 
-## 5. Como rodar
+1 × (150 + 21) - 925 = -754
+```
 
-O `.env` deve continuar apontando para a base TESTE. O item é somente leitura e
-usa as mesmas travas do restante do roteiro de homologação.
+```text
+produto 11190
+QTGIRODIA           10
+PRAZOENTREGA        150
+TEMREPOS            21
+ESTOQUE             0
+QTPENDENTE          881
+QTSUGESTAO gravada  1710
+
+10 × (150 + 21) - 0 = 1710
+```
+
+O item 2.24 reproduziu **2 de 2 itens**, ambos com diferença zero.
+
+## 4. Testes manuais na PCSIS3010
+
+Além do pedido 11866, foram feitos testes diretos na
+**PCSIS3010 v37.0.08.071**, antes de gravar o pedido.
+
+### 4.1 QTVEZES
+
+Com produto 8360:
+
+```text
+Qt. vezes estq. ideal = 2
+PRAZOENTREGA          = 150
+TEMREPOS              = 21
+ESTOQUE               = 925
+
+Qtde Est. Ideal       = 171
+Qtde Sugestão         = -754
+```
+
+Portanto, alterar `QTVEZES` de 1 para 2 **não alterou** o estoque ideal nem a
+`QTSUGESTAO` nesse caminho.
+
+`QTVEZES` não entra na conta-base homologada.
+
+### 4.2 Tempo de reposição informado na tela
+
+Com `Tempo reposição = 10`:
+
+```text
+1 × (150 + 10) - 925 = -765
+```
+
+Isso confirmou que, quando há valor positivo informado na tela, ele substitui o
+tempo de reposição do cadastro.
+
+Com o campo em zero, o caminho observado usa `PCPRODUT.TEMREPOS`.
+
+### 4.3 Prazo de entrega informado na tela
+
+Com `Prazo entrega = 20`:
+
+```text
+1 × (20 + 21) - 925 = -884
+```
+
+Isso confirmou que, quando há valor positivo informado na tela, ele substitui o
+prazo padrão.
+
+Com o campo em zero, o caminho observado usa o prazo do fornecedor, que no caso
+homologado corresponde a `PCFORNEC.PRAZOENTREGA`.
+
+A aplicação atual não expõe esses dois campos de sobrescrita; portanto usa os
+valores de cadastro.
+
+## 5. Estoque pendente
+
+A filial 4 usada na homologação possui:
+
+```text
+CONSIDERAESTPENDSUGCOMPRA = N
+```
+
+Também foi consultada a base TESTE e não foi encontrada filial com:
+
+```text
+CONSIDERAESTPENDSUGCOMPRA = S
+```
+
+Por isso **não existe evidência suficiente** para implementar o ramo que
+considera estoque pendente.
+
+A aplicação adota comportamento seguro:
+
+```text
+se CONSIDERAESTPENDSUGCOMPRA = 'S'
+    recusar a gravação
+    informar que esse cálculo ainda não foi homologado
+```
+
+Não subtrair `QTPENDENTE` por hipótese.
+
+## 6. Mínimo e múltiplo de compra
+
+O trace lê:
+
+```text
+QTMINSUGCOMPRA
+MULTIPLOCOMPRAS
+```
+
+Mas não foi encontrado caso positivo útil para homologação:
+
+```text
+PCPRODUT / PCPRODFILIAL na filial 4     nenhum caso positivo relevante
+histórico PCITEM da rotina 3010 filial 4 nenhum caso positivo relevante
+```
+
+Por isso esses campos permanecem apenas como diagnóstico.
+
+Nenhum ajuste por mínimo ou múltiplo foi implementado sem evidência.
+
+## 7. Item 2.24 do roteiro de homologação
+
+Executar:
 
 ```bash
 cd ~/ww/pedido-3010/api
 NUMPED_QTSUGESTAO=<NUMPED> API_URL=nao npm run homologacao
 ```
 
-`API_URL=nao` evita os testes HTTP e deixa esta rodada focada no banco. Não é
-necessário ligar a API para o item 2.24.
+O item:
 
-Sem `NUMPED_QTSUGESTAO`, o 2.24 aparece como `pulado` e o restante do roteiro
-continua funcionando como antes.
+- exige pedido com `ROTINALANC = 3010`;
+- lê a `QTSUGESTAO` gravada;
+- lê giro, estoque, prazo, reposição, pendência, mínimo e múltiplo;
+- calcula a conta-base homologada;
+- mostra a diferença entre calculado e gravado;
+- registra se cada item reproduziu a 3010.
 
-## 6. O que o 2.24 registra
-
-Do pedido e de cada item:
-
-```text
-NUMPED e ROTINALANC
-CODFILIAL e CODFORNEC
-CODPROD
-QTPEDIDA
-QTSUGESTAO gravada pela 3010
-ESTOQUE disponível atual
-QTGIRODIA
-QTPENDENTE
-PCFILIAL.CONSIDERAESTPENDSUGCOMPRA
-PCFORNEC.PRAZOENTREGA
-PCPRODUT.TEMREPOS
-QTMINSUGCOMPRA e MULTIPLOCOMPRAS do PCITEM e do cadastro atual
-QTVEZES inferida sem e com pendente
-QTVEZES escolhida conforme a regra da filial
-QTVEZES mais comum entre os itens
-valor recalculado pela conta-base e diferença para o gravado
-```
-
-O roteiro também recusa como referência um número cujo `ROTINALANC` não seja
-`3010`.
-
-## 7. Como interpretar o relatório
-
-### Caso A — fecha limpo
-
-Exemplo de saída esperada:
+Para o pedido 11866:
 
 ```text
-QTVEZES inferida mais comum: 1 em 4/4 item(ns)
-conta comum reproduz 4/4
+pedido 11866 · 2 item(ns) · pendente não considerado ·
+conta-base reproduz 2/2
 ```
 
-Isso é evidência forte de que a conta-base e o tratamento de pendência estão
-corretos para aquele cenário. Ainda assim, antes de codificar a regra de
-produção, conferir os campos de mínimo/múltiplo e registrar a rodada.
+## 8. Implementação
 
-### Caso B — a maioria fecha, alguns itens não
+A gravação deixou de usar `QTSUGESTAO = 0`.
 
-Olhar primeiro nos itens que destoaram:
+Código:
 
-- `QTMINSUGCOMPRA`;
-- `MULTIPLOCOMPRAS`;
-- diferença entre os valores gravados no `PCITEM` e os valores atuais do
-  `PCPRODUT`;
-- prazo/tempo de reposição aplicável ao item.
+```text
+c96e389  fix: usa PCEST na validacao da QTSUGESTAO
+b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
+```
 
-Se os divergentes forem justamente os que têm mínimo ou múltiplo, a próxima
-etapa é descobrir a ordem e o arredondamento desse ajuste antes de mexer na
-gravação da aplicação.
+A conta foi isolada em função própria e coberta por testes com os casos reais e
+os testes manuais:
 
-### Caso C — o fator muda de item para item
+```text
+11190  -> 1710
+8360   -> -754
+tempo reposição 10 -> -765
+prazo entrega 20   -> -884
+```
 
-Não concluir que `QTVEZES` é variável por produto sem evidência adicional.
-Primeiro conferir se o prazo usado pela 3010 é realmente
-`PCFORNEC.PRAZOENTREGA + PCPRODUT.TEMREPOS` e se estoque/pendente não mudaram
-entre a gravação e a execução do roteiro.
+A gravação também recusa filial com estoque pendente enquanto esse ramo não for
+homologado.
 
-### Caso D — `QTGIRODIA = 0` ou dias-base = 0
+## 9. Validação final
 
-Não há como inferir `QTVEZES` por divisão nesse item. Ele permanece no detalhe,
-mas não deve ser usado para fechar o fator comum.
+Antes do commit:
 
-## 8. Critério para liberar a implementação
+```text
+testes focados    96 / 96 PASS
+suite completa    330 / 330 PASS
+build             PASS
+```
 
-Não basta um único produto bater. Para trocar o `QTSUGESTAO = 0` provisório da
-aplicação por um cálculo real, registrar pelo menos uma rodada com pedido criado
-na 3010 e **vários itens**, e explicar qualquer divergência relevante —
-principalmente quando houver mínimo ou múltiplo.
+Homologação final depois do commit `b813ceb`, em transação somente leitura:
 
-Depois disso:
+```text
+16 ok · 5 diferente · 0 erro · 17 info · 2 pulado
+```
 
-1. registrar o relatório em `VALIDACAO_HOMOLOGACAO_RODADAS.md`;
-2. criar teste de regressão com os valores reais observados;
-3. implementar a regra na gravação;
-4. repetir a conferência contra a 3010;
-5. só então reconsiderar o gate de produção.
+Item 2.24:
+
+```text
+pedido 11866 · 2 item(ns) · pendente não considerado ·
+conta-base reproduz 2/2
+```
+
+## 10. Limite atual
+
+A regra está fechada para o caminho observado e implementado.
+
+Continua em aberto somente o comportamento de `QTSUGESTAO` para uma filial com:
+
+```text
+CONSIDERAESTPENDSUGCOMPRA = 'S'
+```
+
+Esse cenário deve ser homologado antes de ser habilitado.

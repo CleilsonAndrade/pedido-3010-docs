@@ -9,7 +9,8 @@ POST /api/v1/gravacao      multipart: "arquivo" (o MESMO LAST da prévia) + "ped
 **Escreve no WinThor.** Só com `GRAVACAO_3010_ATIVA=S`. Escopo atual: **1º
 pedido do master, sem frete**, com os impostos do cadastro. Validado na
 homologação (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`); **não
-publicado em produção** (a QTSUGESTAO ainda é provisória).
+publicado em produção**. A `QTSUGESTAO` foi homologada e implementada em
+30/09/2026 para o caminho em que a filial não considera estoque pendente.
 
 ## 1. O servidor não confia na tela
 
@@ -61,7 +62,8 @@ tributação                           da consulta de impostos rodada NA gravaç
                                      ela não libera (podeUsar false) -> 422
 CUSTOULTENT                          PCEST.CUSTOULTENT da filial na hora (NVL 0)
 valores                              02_FLUXOS/CALCULO_DO_PEDIDO.md, sem frete
-QTSUGESTAO                           0, PROVISÓRIO (a conta da 3010 não aparece no trace)
+QTSUGESTAO                           QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL
+                                     negativo é preservado; pedido nativo 11866 reproduziu 2/2
 ```
 
 ## 4. A montagem
@@ -125,7 +127,8 @@ caracteres).
 ## 8. Limites (ainda não validado)
 
 ```text
-QTSUGESTAO        provisória em 0; a produção não liga antes de conferir a conta da 3010
+QTSUGESTAO        homologada para filial sem estoque pendente; se
+                  CONSIDERAESTPENDSUGCOMPRA='S', a API recusa até esse ramo ser homologado
 frete e despesas  calculados (02_FLUXOS/CALCULO_DO_PEDIDO.md), ainda não gravados
 2º pedido         criado pela própria 3010; não se sabe qual ação o gera
 produção          nenhuma gravação feita; a chave fica N até decisão

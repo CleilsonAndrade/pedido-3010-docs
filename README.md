@@ -2,10 +2,10 @@
 
 **Projeto:** `pedido-3010`
 **Branch acompanhada:** `master`
-**Data de referência:** 2026-09-28
-**HEAD acompanhado:** `d3a0f53 feat: roteiro da QTSUGESTAO por NUMPED` (patch 0055 preparado)
-**HEAD remoto acompanhado:** `origin/master` em `20fe04e` (0055 ainda não aplicado/publicado)
-**Situação do checkpoint:** gravação do 1º pedido validada na homologação (base TESTE); produção bloqueada até a QTSUGESTAO ser conferida
+**Data de referência:** 2026-09-30
+**HEAD acompanhado:** `b813ceb feat: calcula QTSUGESTAO como a rotina 3010`
+**HEAD remoto acompanhado:** `origin/master` em `b813ceb`
+**Situação do checkpoint:** gravação do 1º pedido validada na TESTE; `QTSUGESTAO` homologada e implementada; produção ainda não publicada e protegida por `GRAVACAO_3010_ATIVA`
 **Serviços consumidos:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor
 
 ---
@@ -85,7 +85,12 @@ a 3010 grava; o 2º pedido continua sendo criado pela própria 3010.
   o trace) e grava numa transação só, conferindo tudo de novo no servidor;
 - a tela coleta o que o pedido precisa e grava com confirmação;
 - a gravação foi validada na homologação (11858); **não foi publicada em
-  produção**.
+  produção**;
+- a `QTSUGESTAO` deixou de ser provisória em 30/09: o pedido nativo 11866
+  reproduziu 2/2 itens pela conta
+  `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`;
+  implementação em `b813ceb`, com `c96e389` corrigindo a fonte do giro para
+  `PCEST.QTGIRODIA`.
 
 ### Gate (25/09)
 

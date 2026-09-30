@@ -72,28 +72,71 @@ do 11840 são idênticos ao 26MCS388F da PROCESSOS. Com os LASTs 388F, 400F e
 **Rede:** `localhost` no `COMEX_API_URL` faz o Node tentar IPv6 e falhar com o
 comex no ar. Usar `127.0.0.1`.
 
-## QTSUGESTAO no trace (o que se sabe)
+## QTSUGESTAO — trace, teste manual e banco
 
-A 3010 gravou **−2.316** no 9018 (1.000 pedidas): é "estoque ideal − estoque".
-As variáveis vêm da consulta da sugestão de compra (trace, bloco 224):
+O trace foi útil para identificar as variáveis envolvidas, mas **não foi
+suficiente para fechar a conta final**. A validação prática posterior na
+PCSIS3010 v37.0.08.071 substitui a hipótese antiga que incluía `QTVEZES`.
 
-```
+Do trace permanece como evidência:
+
+```text
 ESTOQUE        = PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
-QTGIRODIA      = giro diário (ESTCONSOLIDADO)
-M_ESTIDEAL     = QTGIRODIA × (prazo de entrega + tempo de reposição) × :QTVEZES
-QTPENDENTE     entra só com PCFILIAL.CONSIDERAESTPENDSUGCOMPRA = 'S'
-QTMINSUGCOMPRA, MULTIPLOCOMPRAS
+QTPENDENTE     existe no caminho da sugestão
+QTMINSUGCOMPRA e MULTIPLOCOMPRAS são lidos
 ```
 
-A **conta final** é feita dentro da 3010 e os parâmetros (`:PRAZOENTREGA`,
-`:TEMPOREPOSICAO`, `:QTVEZES`) aparecem cortados no trace. Para calcular igual,
-é preciso conferir na prática: lançar um pedido pela 3010 na homologação e, na
-mesma hora, rodar a consulta para os itens e achar a fórmula que dá o valor
-gravado (como o 2.20 fez com o custo).
+O pedido nativo **11866**, lançado pela própria 3010 na TESTE, fechou a
+conta-base em **2 de 2 itens**:
 
-O patch **0055** prepara o item **2.24** exatamente para essa rodada. Ele recebe
-`NUMPED_QTSUGESTAO`, exige que o pedido tenha `ROTINALANC = 3010`, lê os valores
-gravados e os dados atuais de estoque/giro/pendência, usa
-`PCFORNEC.PRAZOENTREGA` e `PCPRODUT.TEMREPOS` como candidatos iniciais e infere
-`QTVEZES` ao contrário. Isso ainda é **procedimento de descoberta**, não resultado
-validado. Roteiro detalhado: `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+```text
+8360   1 × (150 + 21) - 925 = -754
+11190  10 × (150 + 21) - 0 = 1710
+```
+
+Regra homologada para filial que não considera estoque pendente:
+
+```text
+ESTOQUE_IDEAL =
+    PCEST.QTGIRODIA ×
+    (PCFORNEC.PRAZOENTREGA + PCPRODUT.TEMREPOS)
+
+QTSUGESTAO =
+    ESTOQUE_IDEAL -
+    PKG_ESTOQUE.ESTOQUE_DISPONIVEL(CODPROD, CODFILIAL, 'C')
+```
+
+O resultado negativo é preservado.
+
+Teste manual direto na 3010 também mostrou que alterar
+`Qt. vezes estq. ideal` de 1 para 2 **não alterou** o estoque ideal nem a
+`QTSUGESTAO`. Portanto, `QTVEZES` não entra na conta-base observada neste
+caminho da versão testada.
+
+Também foram validados os campos de sobrescrita da tela:
+
+```text
+Tempo reposição = 10  -> 1 × (150 + 10) - 925 = -765
+Prazo entrega = 20    -> 1 × (20 + 21) - 925 = -884
+```
+
+Com esses campos em zero, o caminho observado usa os valores de cadastro. A
+aplicação atual não expõe essas sobrescritas e usa os valores cadastrados.
+
+A base TESTE não possui filial com
+`CONSIDERAESTPENDSUGCOMPRA='S'`. Por isso o tratamento de `QTPENDENTE` continua
+**não homologado**. A aplicação recusa esse cenário em vez de assumir uma
+fórmula.
+
+Também não houve caso positivo útil de `QTMINSUGCOMPRA` ou
+`MULTIPLOCOMPRAS` na filial 4; esses campos permanecem apenas como diagnóstico.
+
+Detalhes, testes e critério de segurança:
+`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+
+Código implementado:
+
+```text
+c96e389  fix: usa PCEST na validacao da QTSUGESTAO
+b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
+```

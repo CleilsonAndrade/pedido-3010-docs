@@ -12,6 +12,12 @@ cruzamento em `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`.
 O trace corta em 100 valores por comando: "só template" são as colunas depois
 do corte, que só o template tem.
 
+> **Nota sobre QTSUGESTAO (30/09/2026):** a linha da tabela mantém de propósito
+> a comparação histórica do pedido 11681 (`trace = -2316`, `template = 0`).
+> Ela não representa mais o comportamento atual da aplicação. A `QTSUGESTAO`
+> foi homologada depois com o pedido nativo 11866 e passou a ser calculada na
+> gravação; ver `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+
 ## PCITEM: 173 colunas
 
 | # | Coluna | 11681 (trace) | Template | Origem (LEIA-ME) | Confere |

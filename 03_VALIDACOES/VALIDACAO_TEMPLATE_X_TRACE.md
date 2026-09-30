@@ -29,9 +29,11 @@ mesmo do trace. Coluna a coluna, onde os dois têm valor:
 As diferenças são todas explicadas: variáveis do pedido (NUMPED, master,
 invoice de teste), a mesma data escrita de outro jeito (DATALANC = SYSDATE), e
 duas escolhas do template: **CUSTOULTENT** lido do PCEST (a regra fechada na
-3ª rodada) e **QTSUGESTAO = 0**, onde a 3010 gravou −2.316 (agora a decisão é
-calcular como a 3010). As colunas "só template" não têm como ser conferidas
-pelo trace; quase todas são 0, NULL ou marcações ('S'/'N').
+3ª rodada) e **QTSUGESTAO = 0**, onde a 3010 gravou −2.316. Essa diferença de
+`QTSUGESTAO` é histórica do template: em 30/09/2026 a conta foi homologada com
+o pedido nativo 11866 e passou a ser calculada pela aplicação; ver
+`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`. As colunas "só template" não têm como ser
+conferidas pelo trace; quase todas são 0, NULL ou marcações ('S'/'N').
 
 ## 3. O teste de ouro da montagem (coberto por teste)
 

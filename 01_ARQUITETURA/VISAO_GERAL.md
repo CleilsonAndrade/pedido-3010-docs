@@ -58,8 +58,13 @@ evidência antes de regra  regra nova sai de dado real do banco, do trace ou de 
 etapa 1   prévia (só leitura)                                   feita
 etapa 2   tela de conferência                                   partes 1 a 5 feitas
 etapa 3   gravação do 1º pedido na 3010                         feita, validada na homologação
-etapa 4   produção, com a chave ligada por decisão              pendente (QTSUGESTAO)
+etapa 4   produção, com a chave ligada por decisão              pendente (publicação e decisão de habilitar)
 ```
+
+A `QTSUGESTAO` deixou de ser bloqueio da etapa 4 em 30/09/2026 para o caminho
+homologado: pedido nativo 11866 reproduzido em 2/2 itens e implementação em
+`b813ceb`. Filial com `CONSIDERAESTPENDSUGCOMPRA='S'` continua bloqueada até
+homologação específica.
 
 A arquitetura segue a do `amazon-winthor-integration`: login WinThor, logs com id
 de rastreio, validação do `.env` na subida, PM2.
