@@ -13,13 +13,13 @@ citada nos commits e nos testes.
 | — | PCOMPRA | Preço **arredondado da invoice**, não o do LAST | Cleilson: o time lança o que sai na invoice |
 | 1 | NUMINVOCE | Invoice do LAST (`26MMC709F`) | 30 últimos pedidos da 3010 |
 | 1 | NUMPROFORMA | Igual ao NUMINVOCE | 25 de 30 iguais; os 5 diferentes são sobra do pedido anterior |
-| 1 | NUMNEGOCIACAO | Ano da invoice + sequência. Sugere maior da 3010 no ano + 1, editável | `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md` |
+| 1 | NUMNEGOCIACAO | Ano da invoice + sequência. Sugere maior da 3010 no ano + 1, editável | `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md` |
 | A | Validar negociação | Bloqueia vazio, 0, teste (1111, 11111, 1234...); avisa 4 dígitos, outro tamanho que não 5 (602, 266022) ou ano ≠ invoice | Cleilson |
 | 2 | Planilha x pedido | 1 planilha = 1 pedido | Cleilson |
 | 3 | Impostos | Vêm do cadastro tributário (como a tela), usuário confere | trace |
 | 4 | Efeitos colaterais | Atualizar PCPRODUT, PCFORNEC, PCPRODFILIAL **igual à 3010** | trace + Cleilson |
 | 5 | Fornecedor | Usuário escolhe sempre (a planilha só traz o nome) | Cleilson |
-| 6 | IDPEDIDOMASTER | Numerador PCNUMERADORIMP. Só o 1º pedido (ver `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`). **Texto**, ex.: `1046/0426` | banco + homologação |
+| 6 | IDPEDIDOMASTER | Numerador PCNUMERADORIMP. Só o 1º pedido (ver `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`). **Texto**, ex.: `1046/0426` | banco + homologação |
 | 7 | VLTOTAL | **Em reais, com impostos**, calculado como a tela | trace: 619.353,60 |
 | 8 | Código x descrição | Avisa e trava até o usuário escolher | Cleilson |
 | 9 | Acesso | Setor 18 (IMPORTACAO) no PCEMPR | print da rotina 528 |

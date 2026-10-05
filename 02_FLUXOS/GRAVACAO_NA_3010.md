@@ -8,7 +8,7 @@ POST /api/v1/gravacao      multipart: "arquivo" (o MESMO LAST da prévia) + "ped
 
 **Escreve no WinThor.** Só com `GRAVACAO_3010_ATIVA=S`. Escopo atual: **1º
 pedido do master, sem frete**, com os impostos do cadastro. Validado na
-homologação (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`); **não
+homologação (`04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`); **não
 publicado em produção**. A `QTSUGESTAO` foi homologada e implementada em
 30/09/2026 para o caminho em que a filial não considera estoque pendente.
 
@@ -32,7 +32,7 @@ qualquer problema                              -> 422 com a LISTA de problemas
 ## 2. O que a gravação deduz (sem campo na tela)
 
 Evidência: roteiro 2.23 sobre 1.389 pedidos da 3010 em 2026
-(`03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`).
+(`04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`).
 
 ```text
 FRETE, TIPOVENC, TIPOEMBALAGEMPEDIDO, PERCAPRAZO   'C', 'P', 'V', 100 (767 de 775 primeiros pedidos)
@@ -73,7 +73,7 @@ PCITEM **na ordem da 3010**, com os fixos gerados do template
 (`colunas-3010.ts`), a montagem pura (`montagem.ts`) e o INSERT com valores
 ligados por posição (`valor-sql.ts`: data como texto em `TO_DATE`, nunca `Date`;
 NULL e SYSDATE no próprio SQL). Contrato das colunas em
-`04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`.
+`05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`.
 
 ## 5. A execução (uma transação só)
 

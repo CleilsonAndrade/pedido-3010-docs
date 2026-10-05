@@ -1,5 +1,5 @@
 ====================================================================================================
-DOCUMENTO 01/24: 00_STATUS/STATUS_PEDIDO_3010.md
+DOCUMENTO 01/25: 00_STATUS/STATUS_PEDIDO_3010.md
 ====================================================================================================
 
 # STATUS — pedido-3010
@@ -48,12 +48,12 @@ Anexe, conforme a tarefa:
 ## Checkpoint 2026-09-25 — primeiro pedido gravado e validação do time
 
 A gravação do 1º pedido (sem frete) rodou de ponta a ponta na homologação:
-**NUMPED 11858, master 1049/0426** (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`),
+**NUMPED 11858, master 1049/0426** (`04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`),
 conferido no banco e na própria 3010.
 
 O time da importação gravou 3 LASTs da semana e apontou dois erros e quatro
 avisos a tirar; corrigidos nos patches 0048 a 0053
-(`03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`):
+(`04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`):
 
 ```text
 peso líquido      PESOLIQDI = N.W. do LAST ÷ quantidade (antes: do cadastro)
@@ -253,7 +253,7 @@ conta-base reproduz 2/2
 
 Fora da sequência: `comex-api-rota-leitura.patch` e
 `comex-api-senha-fora-do-teste.patch`, aplicados no comex-api
-(`04_CONTRATOS/CONTRATO_COMEX_API.md`).
+(`05_CONTRATOS/CONTRATO_COMEX_API.md`).
 
 ## 3. Gate atual (25/09)
 
@@ -277,7 +277,7 @@ pedidos sem item         10483 a 10490 (testes do template) apagados antes
 gatilhos do PCITEM       os 3 ENABLED
 ```
 
-Roteiros: `05_OPERACAO/BASE_TESTE.md`.
+Roteiros: `06_OPERACAO/BASE_TESTE.md`.
 
 ## 5. Em aberto
 
@@ -324,7 +324,7 @@ entrega               todo commit de código vira patch; conferir "commits = pat
 ```
 
 ====================================================================================================
-DOCUMENTO 02/24: 01_ARQUITETURA/VISAO_GERAL.md
+DOCUMENTO 02/25: 01_ARQUITETURA/VISAO_GERAL.md
 ====================================================================================================
 
 # Arquitetura — Visão Geral
@@ -399,7 +399,7 @@ A arquitetura segue a do `amazon-winthor-integration`: login WinThor, logs com i
 de rastreio, validação do `.env` na subida, PM2.
 
 ====================================================================================================
-DOCUMENTO 03/24: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
+DOCUMENTO 03/25: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
 ====================================================================================================
 
 # Arquitetura — Fronteira comex-api × pedido-3010 × WinThor
@@ -452,7 +452,7 @@ API -> Oracle        DB_HOST / DB_SERVICE_NAME; homologação = serviço TESTE e
 ```
 
 ====================================================================================================
-DOCUMENTO 04/24: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
+DOCUMENTO 04/25: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
 ====================================================================================================
 
 # Arquitetura — Autenticação com o usuário do WinThor
@@ -497,68 +497,7 @@ Todas exigem o token (`JwtAuthGuard`), menos o login e a saúde. Na tela, a sess
 fica na aba (`sessionStorage`); token vencido (401) volta para a entrada.
 
 ====================================================================================================
-DOCUMENTO 05/24: 01_ARQUITETURA/DECISOES.md
-====================================================================================================
-
-# Arquitetura — Decisões
-
-**Natureza:** decisão. Cada linha diz de onde veio: do Cleilson, do time da
-importação, ou de evidência (banco, trace, homologação). Decisão que muda
-comportamento vira teste no repositório do código.
-
-A coluna **#** mantém a numeração original das decisões de 22/09 (1 a 12, A e D),
-citada nos commits e nos testes.
-
-| # | Assunto | Decisão | De onde veio |
-|---|---|---|---|
-| — | Leitura | comex-api em Python, sem reescrever | `PROCESSO_EMISSAO_INVOICE.md` do próprio comex |
-| — | PCOMPRA | Preço **arredondado da invoice**, não o do LAST | Cleilson: o time lança o que sai na invoice |
-| 1 | NUMINVOCE | Invoice do LAST (`26MMC709F`) | 30 últimos pedidos da 3010 |
-| 1 | NUMPROFORMA | Igual ao NUMINVOCE | 25 de 30 iguais; os 5 diferentes são sobra do pedido anterior |
-| 1 | NUMNEGOCIACAO | Ano da invoice + sequência. Sugere maior da 3010 no ano + 1, editável | `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md` |
-| A | Validar negociação | Bloqueia vazio, 0, teste (1111, 11111, 1234...); avisa 4 dígitos, outro tamanho que não 5 (602, 266022) ou ano ≠ invoice | Cleilson |
-| 2 | Planilha x pedido | 1 planilha = 1 pedido | Cleilson |
-| 3 | Impostos | Vêm do cadastro tributário (como a tela), usuário confere | trace |
-| 4 | Efeitos colaterais | Atualizar PCPRODUT, PCFORNEC, PCPRODFILIAL **igual à 3010** | trace + Cleilson |
-| 5 | Fornecedor | Usuário escolhe sempre (a planilha só traz o nome) | Cleilson |
-| 6 | IDPEDIDOMASTER | Numerador PCNUMERADORIMP. Só o 1º pedido (ver `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`). **Texto**, ex.: `1046/0426` | banco + homologação |
-| 7 | VLTOTAL | **Em reais, com impostos**, calculado como a tela | trace: 619.353,60 |
-| 8 | Código x descrição | Avisa e trava até o usuário escolher | Cleilson |
-| 9 | Acesso | Setor 18 (IMPORTACAO) no PCEMPR | print da rotina 528 |
-| 10 | Desfazer | Permitido enquanto não houver entrada | Cleilson |
-| 11 | Testes | Primeiro na MIMO-HOMOLOG (172.20.20.13, serviço TESTE) | Cleilson |
-| 12 | Servidor | srv-fedora-r450, PM2, porta 3010, app em `/home/admin/apps/pedido-3010` | Cleilson |
-| D | Fornecedor + invoice repetidos | Avisa e deixa seguir, **com motivo obrigatório** | Cleilson |
-| — | Pedido sem item | NUNCA grava (a 3010 não mostra master sem PCITEM) | teste do template |
-| — | Backup | CI: `.bundle` do código (30 cópias). CD: versão no ar em `.tar.gz` (10 cópias) antes de trocar; sem backup não troca | Cleilson + scripts do .40 |
-| — | Gravação | Chave `GRAVACAO_3010_ATIVA=N` até a etapa 3 estar aprovada | projeto |
-| — | Tela | Aplicação Angular **separada da API**, não servida pelo NestJS | conversa da etapa 2 |
-| — | Porto da tributação | **Porto de nacionalização** (PCPEDIDO.CODPORTONACIONALIZACAO), não o de chegada | homologação: pedido 9726, 6/6 × 0/6 |
-| — | VLTOTAL do 1º pedido | Regra "parcela × QT a 2 casas"; **diferença de até 2 centavos aceita** (8 de 11 exatos, 3 a 1-2 centavos: arredondamento da própria tela). O contas a pagar nasce do 2º pedido | Cleilson, 24/09 |
-| — | Filial e comprador na tela | Escolhidos a cada pedido; a tela **não** lembra a última escolha (só marca a filial sozinha quando o usuário tem uma só na PCLIB) | Cleilson, 24/09 |
-| — | QTSUGESTAO | **Calcular como a 3010 no caminho homologado**: `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`; preservar resultado negativo; `QTVEZES` não entra na conta-base observada; filial com `CONSIDERAESTPENDSUGCOMPRA='S'` é recusada até esse ramo ser homologado | homologação 30/09, pedido 11866 |
-| — | PCFORNECFILIAL na gravação | **Igual à 3010**: todos os fornecedores nas filiais que faltam (fora a 99) | Cleilson, 24/09 |
-| — | Motivo da invoice repetida | **Nos dois**: **OBS7** ("Invoice repetida: ...", 100 caracteres; OBS4, OBS6 e OBS7 nunca usadas em 2026) e log da aplicação | Cleilson, 24 e 25/09 |
-| — | Item repetido no LAST | Uma linha só por produto, com a quantidade somada; preços diferentes vão pela **média ponderada** (mantém o total da invoice), com aviso mostrando os preços e a média | Time da importação, 25/09 |
-| — | Peso líquido da DI | **N.W. da linha ÷ quantidade** (o peso da invoice); o cadastro só quando o LAST não traz | Time da importação, 25/09 |
-| — | Avisos do comex na prévia | Saem: contêiner, porto de embarque, cliente, imagem dos dados bancários. Ficam: total FOB (sem bloquear), nome da fábrica, porto de destino, data da invoice | Time da importação, 25/09 |
-| — | Peso do LAST × cadastro | **Aviso** (não bloqueia) quando o peso do LAST difere **mais de 10%** do cadastro, para cima ou para baixo | Time da importação, 25/09 |
-| — | Prioridade da etapa 3 | 1º pedido **sem frete** primeiro, com os impostos do cadastro; edição de impostos e despesas depois | Cleilson, 24/09 |
-| — | Da prévia para a gravação | A tela guarda os arquivos e reenvia no "Gravar" com as escolhas; o servidor lê de novo, confere o SHA-256 e grava | Cleilson, 24/09 |
-| — | Cabeçalho do 1º pedido | FRETE C, TIPOVENC P, TIPOEMBALAGEMPEDIDO V, PERCAPRAZO 100 fixos; fabricante e produtor = fornecedor; países = origem; só a previsão de chegada é digitada | roteiro 2.23, 25/09 |
-| — | Restrições da tela | Produto que a 3010 esconderia na grade (sem tributação, fora de linha, proibido para venda, sem preço na região...) **trava** o item (`podeUsar` false) | Cleilson |
-
-## Decisões que ainda faltam
-
-```text
-qual ação da 3010 gera o 2º pedido do master (não bloqueia o 1º)
-onde a 3010 guarda os totais de frete e despesas (precisa de trace)
-QTSUGESTAO com CONSIDERAESTPENDSUGCOMPRA='S': homologar esse ramo antes de habilitar
-custo com o frete em dólar sem converter: replicar (hoje) ou corrigir (avisar o time)
-```
-
-====================================================================================================
-DOCUMENTO 06/24: 02_FLUXOS/PREVIA_DOS_LASTS.md
+DOCUMENTO 05/25: 02_FLUXOS/PREVIA_DOS_LASTS.md
 ====================================================================================================
 
 # Fluxo — Prévia dos LASTs
@@ -646,7 +585,7 @@ Passam para a tela em `ocorrenciasComex`, **menos** as que o time dispensou
 (25/09): `cabecalho.vazio` com `cntr_number` (contêiner), `port_loading` (porto de
 embarque) e `to` (cliente), e `conta.ausente` (imagem dos dados bancários). O
 total FOB vazio (`cabecalho.vazio` / `total_fob_price`) aparece, mas não vira
-pendência. Contrato em `04_CONTRATOS/CONTRATO_COMEX_API.md`.
+pendência. Contrato em `05_CONTRATOS/CONTRATO_COMEX_API.md`.
 
 ## 6. Invoice já lançada (decisão D)
 
@@ -675,14 +614,14 @@ camposParaPreencher   o que a tela precisa coletar (filial, fornecedor, comprado
 ```
 
 ====================================================================================================
-DOCUMENTO 07/24: 02_FLUXOS/CALCULO_DO_PEDIDO.md
+DOCUMENTO 06/25: 02_FLUXOS/CALCULO_DO_PEDIDO.md
 ====================================================================================================
 
 # Fluxo — Cálculo do 1º pedido do master
 
 Os valores de cada PCITEM e o VLTOTAL do PCPEDIDO, calculados como a 3010 grava.
 Regras **deduzidas da homologação e conferidas até a 6ª casa** (rodadas 8ª a
-12ª, `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`); implementadas em
+12ª, `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`); implementadas em
 `api/src/modules/calculo/` e cobertas por teste com pedidos reais como fixture.
 
 ```text
@@ -744,7 +683,7 @@ POST /api/v1/calculo/pedido       calcula, não grava
 Recebe os itens (CODPROD, QT, PCOMPRA, percentuais), a cotação e os totais do
 pedido; devolve os valores por item (como o PCITEM), o VLTOTAL e as pendências
 (item sem PESOLIQDI com despesa vira pendência: o rateio recusa repartir sem
-peso). Contrato em `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`.
+peso). Contrato em `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`.
 
 ## 4. Peso (PESOLIQDI)
 
@@ -760,7 +699,7 @@ se o AFRMM é digitado ou calculado. **Um trace de um lançamento com despesas
 responde.**
 
 ====================================================================================================
-DOCUMENTO 08/24: 02_FLUXOS/GRAVACAO_NA_3010.md
+DOCUMENTO 07/25: 02_FLUXOS/GRAVACAO_NA_3010.md
 ====================================================================================================
 
 # Fluxo — Gravação do 1º pedido do master na 3010
@@ -773,7 +712,7 @@ POST /api/v1/gravacao      multipart: "arquivo" (o MESMO LAST da prévia) + "ped
 
 **Escreve no WinThor.** Só com `GRAVACAO_3010_ATIVA=S`. Escopo atual: **1º
 pedido do master, sem frete**, com os impostos do cadastro. Validado na
-homologação (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`); **não
+homologação (`04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`); **não
 publicado em produção**. A `QTSUGESTAO` foi homologada e implementada em
 30/09/2026 para o caminho em que a filial não considera estoque pendente.
 
@@ -797,7 +736,7 @@ qualquer problema                              -> 422 com a LISTA de problemas
 ## 2. O que a gravação deduz (sem campo na tela)
 
 Evidência: roteiro 2.23 sobre 1.389 pedidos da 3010 em 2026
-(`03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`).
+(`04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`).
 
 ```text
 FRETE, TIPOVENC, TIPOEMBALAGEMPEDIDO, PERCAPRAZO   'C', 'P', 'V', 100 (767 de 775 primeiros pedidos)
@@ -838,7 +777,7 @@ PCITEM **na ordem da 3010**, com os fixos gerados do template
 (`colunas-3010.ts`), a montagem pura (`montagem.ts`) e o INSERT com valores
 ligados por posição (`valor-sql.ts`: data como texto em `TO_DATE`, nunca `Date`;
 NULL e SYSDATE no próprio SQL). Contrato das colunas em
-`04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`.
+`05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`.
 
 ## 5. A execução (uma transação só)
 
@@ -901,7 +840,7 @@ desfazer          previsto (só sem entrada, QTENTREGUE = 0), não implementado
 ```
 
 ====================================================================================================
-DOCUMENTO 09/24: 02_FLUXOS/TELA_DE_CONFERENCIA.md
+DOCUMENTO 08/25: 02_FLUXOS/TELA_DE_CONFERENCIA.md
 ====================================================================================================
 
 # Fluxo — Tela de conferência (Angular, pasta `web/`)
@@ -983,7 +922,1343 @@ e "pronto"; a faixa de segurança amarela e preta **só** onde há pendência. T
 Barlow (a normal no texto, a condensada nos títulos).
 
 ====================================================================================================
-DOCUMENTO 10/24: 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
+DOCUMENTO 09/25: 03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md
+====================================================================================================
+
+# ESP — Pedido Master de Importação na rotina 3010
+
+Funcionalidade:            Pedido Master de Importação
+Código:                    P3010
+Versão do documento:       0.1
+Comportamento homologado:  pedido-3010 @ b813ceb
+Última demanda:            A VALIDAR — projeto anterior à adoção do padrão
+
+**Estado desta ESP:** EM MIGRAÇÃO — ainda não é documento canônico.
+
+Esta especificação será construída a partir das regras já comprovadas no
+repositório documental, no código, nos testes, no trace e na homologação.
+
+Enquanto a migração não terminar:
+
+- os documentos atuais continuam sendo referência;
+- nenhuma regra antiga será apagada;
+- divergências serão registradas explicitamente;
+- comportamento apenas implementado não será chamado de homologado;
+- hipóteses continuarão marcadas como hipótese ou A VALIDAR.
+
+## Escopo inicial
+
+A especificação cobrirá:
+
+- autenticação e autorização;
+- leitura e prévia dos LASTs;
+- resolução de produtos;
+- dados do pedido;
+- tributação;
+- cotação;
+- cálculo;
+- QTSUGESTAO;
+- gravação do primeiro pedido do master.
+
+## P3010-HU1 — Acessar o pedido-3010
+
+O usuário do time de Importação deve acessar a aplicação usando suas
+credenciais do WinThor, sem cadastro de senha próprio no pedido-3010.
+
+### P3010-HU1-RN1 — Autenticação usa o usuário do WinThor
+
+A aplicação deve autenticar o usuário pelo cadastro do WinThor e pela função
+de validação de senha do próprio WinThor.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU1-RN1-CN1 — Usuário autorizado consegue entrar
+
+Ação / entrada:
+usuário e senha válidos do WinThor, pertencente ao setor exigido pela aplicação.
+
+Resultado esperado:
+a autenticação é aceita e uma sessão da aplicação é criada.
+
+#### P3010-HU1-RN1-CN2 — Credencial inválida não permite acesso
+
+Ação / entrada:
+usuário inexistente ou senha inválida.
+
+Resultado esperado:
+a autenticação é recusada.
+
+### P3010-HU1-RN2 — O acesso é restrito ao setor autorizado
+
+O usuário autenticado precisa pertencer ao setor configurado para uso da
+aplicação.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU1-RN2-CN1 — Usuário de outro setor é recusado
+
+Ação / entrada:
+credenciais válidas do WinThor, mas usuário fora do setor exigido.
+
+Resultado esperado:
+o acesso é recusado.
+
+### P3010-HU1-RN3 — A filial usada na gravação precisa estar liberada ao usuário
+
+A gravação só pode usar filial disponibilizada pela PCLIB para a matrícula do
+usuário autenticado.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU1-RN3-CN1 — Filial sem permissão não pode ser gravada
+
+Ação / entrada:
+usuário autenticado solicita gravação em filial que não está liberada para sua
+matrícula.
+
+Resultado esperado:
+a gravação é recusada antes de qualquer escrita no WinThor.
+
+## P3010-HU2 — Conferir os LASTs antes do lançamento
+
+O usuário do time de Importação deve conseguir enviar os LASTs para conferência
+antes de qualquer gravação no WinThor.
+
+### P3010-HU2-RN1 — A prévia é somente leitura
+
+A prévia deve analisar os arquivos e devolver o que foi encontrado sem alterar
+dados do WinThor.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN1-CN1 — Conferir LAST não grava no WinThor
+
+Ação / entrada:
+enviar um ou mais LASTs para a prévia.
+
+Resultado esperado:
+a aplicação devolve a conferência dos arquivos e nenhuma gravação é realizada
+no WinThor.
+
+### P3010-HU2-RN2 — Cada LAST representa um pedido
+
+Cada planilha enviada deve ser tratada como um processo de pedido independente.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN2-CN1 — Vários LASTs geram conferências independentes
+
+Ação / entrada:
+enviar mais de um LAST na mesma prévia.
+
+Resultado esperado:
+cada arquivo possui seu próprio resultado de conferência e corresponde a um
+pedido independente.
+
+### P3010-HU2-RN3 — A leitura do LAST é responsabilidade do comex-api
+
+O pedido-3010 não deve reimplementar a leitura das planilhas. Ele deve consumir
+o resultado produzido pelo comex-api.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN3-CN1 — LAST legível retorna dados para conferência
+
+Ação / entrada:
+enviar um LAST que o comex-api consegue processar.
+
+Resultado esperado:
+os dados retornados pelo comex-api ficam disponíveis para as regras de
+conferência do pedido-3010.
+
+#### P3010-HU2-RN3-CN2 — Falha de leitura vira pendência
+
+Ação / entrada:
+enviar um LAST que o comex-api não consegue processar.
+
+Resultado esperado:
+o pedido correspondente recebe uma pendência de leitura e não fica liberado
+para gravação.
+
+### P3010-HU2-RN4 — O produto é resolvido pelo código de fábrica
+
+A aplicação deve procurar produto ativo do WinThor pelo código de fábrica
+informado no LAST.
+
+A busca considera:
+
+1. código igual após retirar espaços das pontas e comparar em maiúsculo;
+2. forma normalizada sem hífen, `#` e espaço;
+3. somente produtos com `DTEXCLUSAO IS NULL`.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN4-CN1 — Um único candidato resolve o produto
+
+Ação / entrada:
+o código de fábrica do LAST encontra exatamente um produto ativo.
+
+Resultado esperado:
+o produto é resolvido automaticamente para esse CODPROD.
+
+#### P3010-HU2-RN4-CN2 — Nenhum candidato gera pendência
+
+Ação / entrada:
+o código de fábrica não encontra produto ativo.
+
+Resultado esperado:
+a prévia gera a pendência `PRODUTO_NAO_ENCONTRADO` e o pedido não fica
+liberado para gravação.
+
+#### P3010-HU2-RN4-CN3 — Mais de um candidato exige escolha
+
+Ação / entrada:
+o código de fábrica encontra mais de um produto ativo possível.
+
+Resultado esperado:
+a prévia gera `PRODUTO_AMBIGUO`, apresenta os candidatos e exige uma escolha
+válida antes da gravação.
+
+### P3010-HU2-RN5 — Divergência entre código e descrição exige decisão
+
+Quando o código da linha e o início da descrição do LAST apontarem para
+produtos diferentes, a aplicação não deve escolher silenciosamente um deles.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN5-CN1 — Código e descrição divergentes bloqueiam
+
+Ação / entrada:
+o código de fábrica aponta para um produto e a descrição aponta para outro.
+
+Resultado esperado:
+a prévia gera `CODIGO_DESCRICAO_DIVERGENTE`, apresenta as opções ao usuário e
+o pedido permanece bloqueado até uma escolha válida.
+
+### P3010-HU2-RN6 — Produto repetido no LAST vira uma única linha
+
+Quando o mesmo produto aparecer em mais de uma linha do LAST, a aplicação deve
+consolidar essas linhas antes da gravação.
+
+A quantidade deve ser somada.
+
+Quando os preços forem diferentes, o preço resultante deve ser a média
+ponderada, preservando o valor total das linhas da invoice.
+
+A prévia deve informar ao usuário que houve item repetido.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN6-CN1 — Produto repetido com mesmo preço é consolidado
+
+Ação / entrada:
+o mesmo produto aparece em duas ou mais linhas com o mesmo preço.
+
+Resultado esperado:
+a aplicação apresenta uma única linha para o produto, com a quantidade total
+somada, e gera o aviso `ITEM_REPETIDO`.
+
+#### P3010-HU2-RN6-CN2 — Produto repetido com preços diferentes usa média ponderada
+
+Ação / entrada:
+o mesmo produto aparece em duas ou mais linhas com preços diferentes.
+
+Resultado esperado:
+a aplicação apresenta uma única linha para o produto, soma as quantidades e
+calcula o preço pela média ponderada, preservando o valor total das linhas,
+além de gerar o aviso `ITEM_REPETIDO`.
+
+### P3010-HU2-RN7 — O peso líquido do LAST tem prioridade sobre o cadastro
+
+Quando o LAST informar o N.W. da linha, o peso líquido unitário usado pelo
+pedido deve ser calculado por:
+
+`N.W. da linha / quantidade`
+
+O resultado deve ser tratado com 6 casas decimais.
+
+O peso do cadastro é usado somente quando o LAST não fornecer o peso líquido.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN7-CN1 — Peso informado no LAST é usado no pedido
+
+Ação / entrada:
+a linha possui N.W. e quantidade válidos.
+
+Resultado esperado:
+o peso líquido unitário usado no pedido é o N.W. da linha dividido pela
+quantidade.
+
+#### P3010-HU2-RN7-CN2 — Ausência de peso no LAST usa o cadastro
+
+Ação / entrada:
+a linha não possui N.W., mas o produto possui peso disponível no cadastro.
+
+Resultado esperado:
+a aplicação usa o peso do cadastro e gera o aviso `SEM_PESO_NO_LAST`.
+
+#### P3010-HU2-RN7-CN3 — Diferença superior a 10% gera aviso
+
+Ação / entrada:
+o peso calculado a partir do LAST difere mais de 10% do peso existente no
+cadastro, para cima ou para baixo.
+
+Resultado esperado:
+a aplicação gera o aviso `PESO_DIFERENTE_DO_CADASTRO`, mas esse aviso não
+bloqueia a gravação.
+
+### P3010-HU2-RN8 — O pedido-3010 decide quais ocorrências do comex afetam a conferência
+
+O `comex-api` continua responsável por identificar ocorrências da planilha.
+
+O pedido-3010 decide quais dessas ocorrências são relevantes para o lançamento
+do pedido master.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN8-CN1 — Ocorrência de bloqueio relevante impede a gravação
+
+Ação / entrada:
+o comex-api retorna uma ocorrência de nível `bloqueio` que não está entre as
+ocorrências dispensadas pelo time de Importação.
+
+Resultado esperado:
+a prévia gera `BLOQUEIO_COMEX` e o pedido não fica liberado para gravação.
+
+#### P3010-HU2-RN8-CN2 — Ocorrências dispensadas não bloqueiam o pedido
+
+Ação / entrada:
+o comex-api informa ausência de um dos seguintes dados:
+
+- número do contêiner;
+- porto de embarque;
+- cliente;
+- imagem dos dados bancários.
+
+Resultado esperado:
+essas ocorrências não geram pendência de gravação no pedido-3010.
+
+#### P3010-HU2-RN8-CN3 — Total FOB ausente gera aviso, mas não bloqueia
+
+Ação / entrada:
+o LAST não traz o total FOB consolidado, mas os itens possuem valores que
+permitem calcular o total.
+
+Resultado esperado:
+a aplicação calcula o total a partir dos itens, gera o aviso
+`TOTAL_FOB_CALCULADO` e não bloqueia a gravação apenas por esse motivo.
+
+### P3010-HU2-RN9 — Invoice já lançada exige confirmação, não bloqueio absoluto
+
+A existência de pedido master do mesmo fornecedor com a mesma invoice deve ser
+informada ao usuário.
+
+A aplicação pode permitir continuar, mas a gravação exige motivo informado
+pelo usuário.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU2-RN9-CN1 — Invoice sem master anterior segue normalmente
+
+Ação / entrada:
+não existe pedido master do mesmo fornecedor com a mesma invoice.
+
+Resultado esperado:
+a invoice repetida não gera pendência nem exige motivo.
+
+#### P3010-HU2-RN9-CN2 — Invoice já usada exige motivo
+
+Ação / entrada:
+já existe pedido master do mesmo fornecedor com a mesma invoice.
+
+Resultado esperado:
+a aplicação informa os pedidos encontrados e exige um motivo antes de permitir
+a gravação.
+
+#### P3010-HU2-RN9-CN3 — Segundo pedido do mesmo master não é nova duplicidade
+
+Ação / entrada:
+a consulta encontra o primeiro e o segundo pedido pertencentes ao mesmo master.
+
+Resultado esperado:
+o conjunto deve ser tratado como um único lançamento da invoice, e não como duas
+ocorrências independentes.
+
+#### P3010-HU2-RN9-CN4 — Pedido cancelado continua aparecendo na conferência
+
+Ação / entrada:
+existe pedido com a mesma invoice, mas ele está cancelado.
+
+Resultado esperado:
+o pedido cancelado continua sendo apresentado na conferência da invoice já
+lançada.
+
+## P3010-HU3 — Preencher os dados do pedido
+
+O usuário do time de Importação deve receber os dados iniciais conhecidos do
+pedido já preenchidos quando os respectivos cadastros estiverem disponíveis,
+mantendo a possibilidade de alterá-los.
+
+### P3010-HU3-RN1 — A tela aplica defaults operacionais disponíveis
+
+Os defaults operacionais são:
+
+- filial `4`;
+- comprador `201`;
+- moeda `220`;
+- incoterm `FOB`;
+- via marítima;
+- data da cotação igual à data corrente.
+
+Um default somente pode ser aplicado quando o valor correspondente existir
+entre as opções devolvidas pela API.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação funcional dos defaults operacionais: A VALIDAR.
+
+#### P3010-HU3-RN1-CN1 — Filial 4 disponível inicia selecionada
+
+Ação / entrada:
+a lista de filiais permitidas ao usuário contém a filial `4`.
+
+Resultado esperado:
+a filial `4` inicia selecionada.
+
+#### P3010-HU3-RN1-CN2 — Comprador 201 disponível inicia selecionado
+
+Ação / entrada:
+a lista de compradores contém o comprador `201`.
+
+Resultado esperado:
+o comprador `201` inicia selecionado.
+
+#### P3010-HU3-RN1-CN3 — Default inexistente não é forçado
+
+Ação / entrada:
+um valor padrão não existe na respectiva lista devolvida pela API.
+
+Resultado esperado:
+a aplicação não usa um valor inexistente como seleção automática.
+
+#### P3010-HU3-RN1-CN4 — Defaults continuam editáveis
+
+Ação / entrada:
+a tela iniciou com filial e comprador padrão preenchidos.
+
+Resultado esperado:
+o usuário pode alterar normalmente esses campos para outras opções permitidas.
+
+### P3010-HU3-RN2 — O fornecedor do pedido vem do cadastro do WinThor
+
+O nome existente no LAST serve como referência para localizar o fornecedor,
+mas o pedido deve usar um fornecedor válido do cadastro do WinThor.
+
+Fornecedor bloqueado não pode ser usado na gravação.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU3-RN2-CN1 — Fornecedor compatível pode ser selecionado
+
+Ação / entrada:
+o nome do fornecedor do LAST possui correspondência válida entre os
+fornecedores retornados pelo WinThor.
+
+Resultado esperado:
+o fornecedor correspondente fica disponível para uso no pedido.
+
+#### P3010-HU3-RN2-CN2 — Fornecedor bloqueado não pode ser usado
+
+Ação / entrada:
+o fornecedor localizado está bloqueado para o lançamento.
+
+Resultado esperado:
+o fornecedor não pode ser usado para gravar o pedido.
+
+### P3010-HU3-RN3 — O país de origem vem do fornecedor selecionado
+
+O país de origem do pedido deve acompanhar o cadastro do fornecedor escolhido
+no WinThor.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU3-RN3-CN1 — Selecionar fornecedor define o país de origem
+
+Ação / entrada:
+o usuário seleciona um fornecedor válido que possui país cadastrado.
+
+Resultado esperado:
+o país de origem do pedido é preenchido com o país do fornecedor selecionado.
+
+### P3010-HU3-RN4 — O porto de chegada pode ser sugerido pelo destino do LAST
+
+Quando o destino informado no LAST permitir identificar de forma única um porto
+disponível no WinThor, a aplicação deve usá-lo como valor inicial do porto de
+chegada.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU3-RN4-CN1 — Destino com correspondência única preenche o porto
+
+Ação / entrada:
+o destino do LAST corresponde de forma única a um porto disponível no WinThor.
+
+Resultado esperado:
+o porto correspondente inicia selecionado como porto de chegada.
+
+### P3010-HU3-RN5 — O porto de nacionalização acompanha o porto de chegada até edição manual
+
+Enquanto o usuário não alterar manualmente o porto de nacionalização, ele deve
+acompanhar o porto de chegada.
+
+Depois da alteração manual, novas mudanças no porto de chegada não devem
+sobrescrever o porto de nacionalização escolhido pelo usuário.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU3-RN5-CN1 — Porto de nacionalização acompanha a chegada inicialmente
+
+Ação / entrada:
+o porto de chegada é definido e o usuário ainda não alterou manualmente o porto
+de nacionalização.
+
+Resultado esperado:
+o porto de nacionalização recebe o mesmo porto de chegada.
+
+#### P3010-HU3-RN5-CN2 — Alteração manual da nacionalização é preservada
+
+Ação / entrada:
+o usuário altera manualmente o porto de nacionalização e depois modifica o porto
+de chegada.
+
+Resultado esperado:
+o porto de nacionalização informado manualmente permanece inalterado.
+
+#### P3010-HU3-RN5-CN3 — Tributação usa o porto de nacionalização
+
+Ação / entrada:
+porto de chegada e porto de nacionalização possuem valores diferentes.
+
+Resultado esperado:
+a consulta tributária do pedido usa o porto de nacionalização.
+
+### P3010-HU3-RN6 — A proforma inicia com a invoice e permanece editável
+
+O número da proforma deve iniciar com o número da invoice do LAST.
+
+O usuário pode alterar esse valor quando a operação possuir uma proforma
+diferente da invoice.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU3-RN6-CN1 — Invoice inicia a proforma
+
+Ação / entrada:
+o LAST possui número de invoice.
+
+Resultado esperado:
+o campo de proforma inicia com o mesmo número da invoice.
+
+#### P3010-HU3-RN6-CN2 — Proforma pode ser alterada
+
+Ação / entrada:
+o usuário informa uma proforma diferente da invoice.
+
+Resultado esperado:
+o valor informado pelo usuário é mantido para o pedido.
+
+### P3010-HU3-RN7 — As datas previstas possuem valores iniciais assistidos
+
+Os valores iniciais são:
+
+- previsão de embarque: data da invoice;
+- previsão de chegada: preenchida pelo usuário;
+- previsão de entrada no estoque: chegada + 20 dias.
+
+A previsão de entrada acompanha a chegada + 20 dias enquanto o usuário ainda
+não tiver alterado manualmente a entrada.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU3-RN7-CN1 — Embarque inicia com a data da invoice
+
+Ação / entrada:
+o LAST possui data da invoice.
+
+Resultado esperado:
+a previsão de embarque inicia com a data da invoice.
+
+#### P3010-HU3-RN7-CN2 — Entrada é sugerida como chegada mais 20 dias
+
+Ação / entrada:
+o usuário informa a previsão de chegada e ainda não alterou manualmente a
+previsão de entrada no estoque.
+
+Resultado esperado:
+a previsão de entrada no estoque é preenchida com a data de chegada mais
+20 dias.
+
+#### P3010-HU3-RN7-CN3 — Entrada alterada manualmente deixa de acompanhar a chegada
+
+Ação / entrada:
+o usuário altera manualmente a previsão de entrada no estoque e depois modifica
+a previsão de chegada.
+
+Resultado esperado:
+a previsão de entrada informada manualmente é preservada.
+
+### P3010-HU3-RN8 — As datas previstas devem respeitar a ordem cronológica
+
+A ordem válida é:
+
+`embarque <= chegada <= entrada no estoque`
+
+Datas iguais são permitidas.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação pós-correção: A VALIDAR.
+
+#### P3010-HU3-RN8-CN1 — Chegada anterior ao embarque é recusada
+
+Ação / entrada:
+a previsão de chegada é anterior à previsão de embarque.
+
+Resultado esperado:
+o pedido permanece bloqueado para gravação.
+
+#### P3010-HU3-RN8-CN2 — Entrada anterior à chegada é recusada
+
+Ação / entrada:
+a previsão de entrada no estoque é anterior à previsão de chegada.
+
+Resultado esperado:
+o pedido permanece bloqueado para gravação.
+
+#### P3010-HU3-RN8-CN3 — Datas iguais são permitidas
+
+Ação / entrada:
+embarque, chegada e entrada no estoque possuem a mesma data.
+
+Resultado esperado:
+a igualdade entre as datas não gera bloqueio cronológico.
+
+## P3010-HU4 — Obter a cotação do pedido
+
+O usuário deve receber a cotação aplicável ao pedido sem precisar calcular
+manualmente o acréscimo operacional do dólar.
+
+### P3010-HU4-RN1 — USD do dia usa BCB/PTAX com acréscimo de 5%
+
+Quando a moeda for dólar americano (`220`) e a data da cotação for a data
+corrente, a aplicação deve obter a cotação de venda do BCB/PTAX.
+
+A cotação considerada pelo pedido é:
+
+`cotacaoVenda + 5%`
+
+equivalente a:
+
+`cotacaoVenda × 1,05`
+
+O resultado usado no WinThor deve respeitar 6 casas decimais.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação funcional da cotação BCB/PTAX com acréscimo de 5%: A VALIDAR.
+
+#### P3010-HU4-RN1-CN1 — Cotação de venda recebe acréscimo de 5%
+
+Ação / entrada:
+o BCB retorna uma cotação de venda válida para USD na data corrente.
+
+Resultado esperado:
+a aplicação calcula a cotação considerada adicionando 5% à cotação de venda.
+
+### P3010-HU4-RN2 — Fechamento PTAX tem preferência
+
+Quando houver mais de um boletim no mesmo dia, a aplicação deve preferir o
+`Fechamento PTAX`.
+
+Se o fechamento ainda não estiver disponível, deve usar o boletim mais recente
+do mesmo dia.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação funcional da seleção do boletim PTAX: A VALIDAR.
+
+#### P3010-HU4-RN2-CN1 — Fechamento disponível é escolhido
+
+Ação / entrada:
+o BCB retorna vários boletins do dia, incluindo `Fechamento PTAX`.
+
+Resultado esperado:
+a cotação considerada usa o boletim `Fechamento PTAX`.
+
+#### P3010-HU4-RN2-CN2 — Sem fechamento usa o boletim mais recente do dia
+
+Ação / entrada:
+o BCB retorna boletins do dia, mas ainda não existe `Fechamento PTAX`.
+
+Resultado esperado:
+a aplicação usa o boletim mais recente disponível naquela mesma data.
+
+#### P3010-HU4-RN2-CN3 — Não há fallback automático para outro dia
+
+Ação / entrada:
+não existe boletim disponível para a data solicitada.
+
+Resultado esperado:
+a aplicação não substitui silenciosamente a cotação pela de outro dia.
+
+### P3010-HU4-RN3 — A cotação USD do dia pode ser cadastrada automaticamente no WinThor
+
+Para USD na data corrente, a cotação considerada pelo pedido pode ser gravada
+automaticamente em `PCCOTACAOMOEDAI`.
+
+Essa escrita depende da chave:
+
+`COTACAO_BCB_GRAVACAO_ATIVA=S`
+
+A chave de cotação é independente da chave de gravação do pedido:
+
+`GRAVACAO_3010_ATIVA`
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Proteção com `COTACAO_BCB_GRAVACAO_ATIVA` desligada: VALIDADA por teste
+automatizado, sem tentativa de escrita no Oracle.
+Gravação automática com a chave ligada: VALIDADA por testes automatizados da
+orquestração e da persistência Oracle.
+Homologação funcional da gravação automática na base TESTE: A VALIDAR.
+
+#### P3010-HU4-RN3-CN1 — Chave ligada permite atualizar a cotação do dia
+
+Ação / entrada:
+moeda `220`, data corrente, cotação BCB disponível e
+`COTACAO_BCB_GRAVACAO_ATIVA=S`.
+
+Resultado esperado:
+a cotação considerada é cadastrada no WinThor para a moeda e a data solicitadas.
+
+#### P3010-HU4-RN3-CN2 — Chave desligada impede a escrita automática
+
+Ação / entrada:
+é solicitada a atualização automática da cotação com
+`COTACAO_BCB_GRAVACAO_ATIVA` desligada.
+
+Resultado esperado:
+a aplicação não altera `PCCOTACAOMOEDAI`.
+
+### P3010-HU4-RN4 — Cotação histórica não é sobrescrita automaticamente pelo BCB
+
+A atualização automática pelo BCB aplica-se ao USD da data corrente.
+
+Para data histórica, a aplicação deve usar a cotação já cadastrada no WinThor,
+sem substituí-la automaticamente por uma consulta ao BCB.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação funcional da preservação de cotações históricas: A VALIDAR.
+
+#### P3010-HU4-RN4-CN1 — Data histórica preserva a cotação cadastrada
+
+Ação / entrada:
+o pedido usa USD com data de cotação anterior à data corrente.
+
+Resultado esperado:
+a aplicação consulta a cotação já cadastrada no WinThor e não executa
+atualização automática dessa data pelo BCB.
+
+### P3010-HU4-RN5 — Falha na cotação BCB do dia não reutiliza valor antigo
+
+Para USD na data corrente, a aplicação não deve tratar uma cotação antiga já
+existente no WinThor como se fosse a cotação atual quando a consulta ou a
+atualização pelo BCB falhar.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação funcional do bloqueio por falha na cotação BCB do dia: A VALIDAR.
+
+#### P3010-HU4-RN5-CN1 — Falha do BCB mantém o pedido sem cotação válida
+
+Ação / entrada:
+moeda `220`, data corrente e falha ao obter ou cadastrar a cotação pelo
+BCB/PTAX.
+
+Resultado esperado:
+a aplicação mantém a cotação atual como indisponível para o pedido e não
+reutiliza silenciosamente uma cotação anterior.
+
+#### P3010-HU4-RN5-CN2 — Pedido sem cotação atual não pode ser gravado
+
+Ação / entrada:
+a atualização da cotação USD da data corrente falhou.
+
+Resultado esperado:
+o pedido permanece bloqueado para gravação até existir uma cotação válida para
+a data corrente.
+
+### P3010-HU4-RN6 — A cotação USD do dia é sincronizada novamente antes da gravação
+
+Mesmo que a tela já tenha obtido e cadastrado a cotação, o backend deve
+sincronizar novamente a cotação USD da data corrente imediatamente antes de
+montar e gravar o pedido.
+
+A cotação usada no pedido deve ser o valor confirmado nessa sincronização.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por testes automatizados.
+Homologação funcional da ressincronização imediatamente antes da gravação:
+A VALIDAR.
+
+#### P3010-HU4-RN6-CN1 — Gravação usa a cotação confirmada na sincronização final
+
+Ação / entrada:
+pedido em USD com data de cotação igual à data corrente e sincronização BCB
+concluída com sucesso.
+
+Resultado esperado:
+o pedido usa a cotação confirmada pela sincronização executada imediatamente
+antes da gravação.
+
+#### P3010-HU4-RN6-CN2 — Falha na sincronização final impede o pedido
+
+Ação / entrada:
+a sincronização BCB/PTAX imediatamente anterior à gravação falha.
+
+Resultado esperado:
+o pedido não é gravado no WinThor.
+
+### P3010-HU4-RN7 — Atualizações concorrentes da mesma cotação são serializadas
+
+Dentro da mesma instância da API, operações simultâneas para a mesma combinação
+de moeda e data não devem executar a atualização da cotação em paralelo.
+
+A operação seguinte deve aguardar a anterior terminar antes de iniciar sua
+própria sincronização.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: IMPLEMENTADO e VALIDADO por teste automatizado.
+Homologação funcional da serialização concorrente: A VALIDAR.
+
+#### P3010-HU4-RN7-CN1 — Segunda atualização aguarda a primeira
+
+Ação / entrada:
+duas solicitações de atualização da mesma moeda e data são iniciadas
+praticamente ao mesmo tempo na mesma instância da API.
+
+Resultado esperado:
+a segunda solicitação aguarda o término da primeira antes de executar sua
+sincronização com BCB e WinThor.
+
+#### P3010-HU4-RN7-CN2 — Moeda ou data diferente não compartilha a mesma fila
+
+Ação / entrada:
+existem solicitações simultâneas para combinações diferentes de moeda e data.
+
+Resultado esperado:
+uma combinação não precisa aguardar a fila de outra combinação distinta.
+
+### Limitação conhecida de P3010-HU4-RN7
+
+A serialização atual existe somente dentro de uma instância da API.
+
+Se a aplicação passar a operar com múltiplas instâncias simultâneas, será
+necessário validar e definir um mecanismo de coordenação compartilhada ou
+proteção equivalente no Oracle.
+
+## P3010-HU5 — Determinar a tributação dos itens
+
+Cada produto do pedido deve possuir uma tributação válida para o contexto da
+importação antes da gravação no WinThor.
+
+### P3010-HU5-RN1 — A tributação é obtida do WinThor pelo contexto do pedido
+
+A aplicação deve consultar a tributação do item considerando, no mínimo:
+
+- filial;
+- fornecedor;
+- país de origem;
+- porto de nacionalização;
+- produto.
+
+A tributação utilizada na gravação deve ser novamente determinada pelo backend,
+sem depender apenas dos valores apresentados anteriormente na tela.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU5-RN1-CN1 — Contexto válido retorna tributação utilizável
+
+Ação / entrada:
+produto e contexto do pedido possuem tributação aplicável no WinThor.
+
+Resultado esperado:
+a aplicação obtém a tributação correspondente e o item pode seguir para as
+demais validações do pedido.
+
+#### P3010-HU5-RN1-CN2 — Item sem tributação utilizável não pode ser gravado
+
+Ação / entrada:
+o WinThor não fornece uma tributação utilizável para o produto no contexto do
+pedido.
+
+Resultado esperado:
+o item permanece com pendência e o pedido não é liberado para gravação enquanto
+a tributação não estiver resolvida.
+
+### P3010-HU5-RN2 — PIS e COFINS consideram exceções do WinThor
+
+A determinação de PIS e COFINS deve considerar as exceções aplicáveis ao item
+cadastradas no WinThor.
+
+Quando existir uma exceção aplicável, a tributação utilizada pelo pedido deve
+refletir essa exceção em vez de ignorá-la e usar somente os percentuais gerais.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU5-RN2-CN1 — Exceção aplicável é considerada
+
+Ação / entrada:
+o produto possui uma exceção de PIS e/ou COFINS aplicável ao contexto do pedido
+no WinThor.
+
+Resultado esperado:
+os percentuais tributários usados para o item refletem a exceção aplicável.
+
+#### P3010-HU5-RN2-CN2 — Ausência de exceção segue a tributação normal
+
+Ação / entrada:
+não existe exceção de PIS ou COFINS aplicável ao item no contexto do pedido.
+
+Resultado esperado:
+a aplicação utiliza a tributação normal determinada pelo WinThor para o item.
+
+### P3010-HU5-RN3 — II e IPI seguem a tributação determinada pelo WinThor
+
+Os percentuais de Imposto de Importação (II) e IPI usados no pedido devem ser
+os percentuais determinados pelo WinThor para o produto e o contexto da
+importação.
+
+A gravação deve usar os percentuais revalidados pelo backend no momento do
+processamento do pedido.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU5-RN3-CN1 — II aplicável é usado no item
+
+Ação / entrada:
+o WinThor determina percentual de Imposto de Importação para o produto no
+contexto do pedido.
+
+Resultado esperado:
+o item usa esse percentual de II na tributação considerada para a gravação.
+
+#### P3010-HU5-RN3-CN2 — IPI aplicável é usado no item
+
+Ação / entrada:
+o WinThor determina percentual de IPI para o produto no contexto do pedido.
+
+Resultado esperado:
+o item usa esse percentual de IPI na tributação considerada para a gravação.
+
+## P3010-HU6 — Calcular os valores do pedido
+
+O usuário deve receber os valores calculados do pedido conforme as regras
+observadas na rotina 3010 antes da gravação no WinThor.
+
+### P3010-HU6-RN1 — O cálculo usa os dados consolidados do item e do pedido
+
+O cálculo deve considerar os dados já resolvidos e validados nas etapas
+anteriores, incluindo:
+
+- produto;
+- quantidade;
+- preço de compra;
+- percentuais tributários aplicáveis;
+- cotação da moeda;
+- totais necessários ao cálculo do pedido.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU6-RN1-CN1 — Item válido pode ser calculado
+
+Ação / entrada:
+o item possui produto resolvido, quantidade, preço de compra, tributação e
+cotação válidos.
+
+Resultado esperado:
+a aplicação calcula os valores derivados necessários para o item e para o
+pedido.
+
+#### P3010-HU6-RN1-CN2 — Dado obrigatório ausente impede concluir o cálculo
+
+Ação / entrada:
+falta um dado obrigatório necessário para calcular corretamente o item.
+
+Resultado esperado:
+o cálculo não é considerado concluído e o pedido não fica liberado para
+gravação enquanto a pendência permanecer.
+
+### P3010-HU6-RN2 — Os valores derivados do item devem reproduzir a rotina 3010
+
+Para o escopo de cálculo já homologado, os valores derivados de cada item devem
+reproduzir o comportamento observado na rotina 3010.
+
+A comparação dos valores decimais deve preservar a precisão necessária até a
+6ª casa decimal nos campos calculados por item.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual: HOMOLOGADO no escopo atualmente validado do primeiro pedido.
+
+#### P3010-HU6-RN2-CN1 — Item calculado reproduz os valores da rotina 3010
+
+Ação / entrada:
+um item é processado com os mesmos dados de produto, quantidade, preço,
+tributação, cotação e demais valores necessários usados pela rotina 3010.
+
+Resultado esperado:
+os valores derivados do item correspondem aos valores produzidos pela rotina
+3010 dentro da precisão definida para o cálculo.
+
+#### P3010-HU6-RN2-CN2 — Divergência de cálculo impede considerar o pedido validado
+
+Ação / entrada:
+um valor derivado do item diverge do comportamento esperado da rotina 3010
+fora da precisão aceita.
+
+Resultado esperado:
+o cálculo é considerado divergente e não deve ser tratado como validado para
+gravação até a causa ser resolvida.
+
+### P3010-HU6-RN3 — O total do pedido deve reproduzir a rotina 3010
+
+O valor total calculado para o pedido deve reproduzir o comportamento da rotina
+3010 dentro do escopo já homologado.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual:
+HOMOLOGADO para o primeiro pedido no escopo atualmente validado.
+
+Na comparação histórica da homologação, o `VLTOTAL` apresentou diferença
+residual de até R$ 0,02 em relação à rotina 3010.
+
+Essa diferença observada não constitui, por si só, uma tolerância funcional
+autorizada para novos cálculos.
+
+#### P3010-HU6-RN3-CN1 — Total do primeiro pedido é calculado
+
+Ação / entrada:
+todos os itens do primeiro pedido possuem os dados necessários para o cálculo.
+
+Resultado esperado:
+a aplicação produz o valor total do pedido segundo as regras de cálculo
+homologadas para esse escopo.
+
+#### P3010-HU6-RN3-CN2 — Divergência do total deve ser identificada
+
+Ação / entrada:
+o total calculado pela aplicação diverge do valor esperado segundo o
+comportamento homologado da rotina 3010.
+
+Resultado esperado:
+a divergência deve ser identificada na validação e não pode ser ocultada por
+arredondamento ou ajuste sem regra comprovada.
+
+### Limitação conhecida de P3010-HU6-RN3
+
+O comportamento de `VLTOTAL` em cenários com frete e despesas que não pertencem
+ao escopo atualmente fechado permanece A VALIDAR.
+
+Nenhuma fórmula adicional para esse cenário deve ser tratada como regra
+homologada até existir evidência suficiente.
+
+### P3010-HU6-RN4 — A QTSUGESTAO reproduz a conta-base homologada da 3010
+
+Para filial que não considera estoque pendente na sugestão de compra, a
+quantidade sugerida deve ser calculada por:
+
+`QTSUGESTAO = QTGIRODIA × (PRAZOENTREGA + TEMREPOS) - ESTOQUE_DISPONIVEL`
+
+A conta-base não utiliza `QTVEZES`.
+
+O resultado negativo deve ser preservado.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual:
+HOMOLOGADO para filial com `CONSIDERAESTPENDSUGCOMPRA='N'`.
+
+#### P3010-HU6-RN4-CN1 — Conta-base calcula a quantidade sugerida
+
+Ação / entrada:
+a filial não considera estoque pendente e o item possui giro diário, prazo de
+entrega, tempo de reposição e estoque disponível válidos.
+
+Resultado esperado:
+a aplicação calcula `QTSUGESTAO` pela conta-base homologada.
+
+#### P3010-HU6-RN4-CN2 — Resultado negativo é preservado
+
+Ação / entrada:
+a conta-base resulta em uma `QTSUGESTAO` menor que zero.
+
+Resultado esperado:
+o valor negativo é preservado, sem ser convertido automaticamente para zero.
+
+#### P3010-HU6-RN4-CN3 — QTVEZES não altera a conta-base homologada
+
+Ação / entrada:
+existe valor de `QTVEZES` associado ao cenário calculado.
+
+Resultado esperado:
+`QTVEZES` não participa da conta-base homologada da `QTSUGESTAO`.
+
+### Limitação conhecida de P3010-HU6-RN4
+
+O cálculo para filial com `CONSIDERAESTPENDSUGCOMPRA='S'` permanece
+NÃO HOMOLOGADO.
+
+Enquanto esse comportamento não for comprovado, a aplicação deve recusar a
+gravação nesse cenário em vez de aplicar uma fórmula presumida.
+
+## P3010-HU7 — Gravar o primeiro pedido no WinThor
+
+Depois que a conferência, a tributação e o cálculo estiverem válidos, a
+aplicação deve conseguir gravar o primeiro pedido do master no WinThor.
+
+Status atual:
+HOMOLOGADO na base TESTE para o primeiro pedido.
+Publicação em produção: NÃO REALIZADA.
+
+### P3010-HU7-RN1 — A gravação do pedido depende de habilitação explícita
+
+A escrita do pedido no WinThor somente pode ser executada quando:
+
+`GRAVACAO_3010_ATIVA=S`
+
+Com a gravação desabilitada, a aplicação não deve criar ou alterar registros do
+pedido no WinThor.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU7-RN1-CN1 — Chave desligada impede a gravação
+
+Ação / entrada:
+o usuário solicita a gravação com `GRAVACAO_3010_ATIVA` desligada.
+
+Resultado esperado:
+nenhum pedido é criado no WinThor.
+
+#### P3010-HU7-RN1-CN2 — Chave ligada permite seguir para as validações de gravação
+
+Ação / entrada:
+o usuário solicita a gravação com `GRAVACAO_3010_ATIVA=S`.
+
+Resultado esperado:
+a aplicação pode prosseguir para as validações obrigatórias anteriores à escrita
+do pedido.
+
+### P3010-HU7-RN2 — O backend revalida o pedido antes de qualquer escrita
+
+A gravação não deve confiar somente na conferência já realizada na tela.
+
+Imediatamente antes da escrita, o backend deve revalidar os dados necessários
+ao pedido, incluindo:
+
+- integridade do LAST usado na operação;
+- escolhas feitas para produtos com pendência de resolução;
+- cadastros obrigatórios do pedido;
+- filial permitida ao usuário;
+- fornecedor;
+- comprador;
+- moeda e cotação aplicável;
+- país e portos;
+- tributação dos produtos;
+- negociação;
+- situação de invoice já lançada;
+- regras de cálculo necessárias para a gravação.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU7-RN2-CN1 — Pedido ainda válido pode seguir para escrita
+
+Ação / entrada:
+todos os dados e regras revalidados pelo backend continuam válidos no momento da
+solicitação de gravação.
+
+Resultado esperado:
+a aplicação pode seguir para a etapa transacional de escrita no WinThor.
+
+#### P3010-HU7-RN2-CN2 — Mudança ou inconsistência bloqueia antes da escrita
+
+Ação / entrada:
+algum dado necessário não corresponde mais ao estado válido esperado no momento
+da revalidação.
+
+Resultado esperado:
+a gravação é recusada antes da criação do pedido no WinThor.
+
+### P3010-HU7-RN3 — A gravação do pedido é atômica
+
+As escritas necessárias para criar o primeiro pedido devem ocorrer dentro da
+mesma transação Oracle.
+
+O pedido somente deve ser confirmado quando todas as etapas obrigatórias da
+gravação forem concluídas com sucesso.
+
+Se qualquer etapa falhar, a transação deve ser desfeita para não deixar um
+pedido parcialmente gravado.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU7-RN3-CN1 — Gravação completa confirma a transação
+
+Ação / entrada:
+todas as escritas e processamentos obrigatórios do primeiro pedido são
+concluídos com sucesso.
+
+Resultado esperado:
+a transação é confirmada e o pedido fica persistido integralmente no WinThor.
+
+#### P3010-HU7-RN3-CN2 — Falha durante a escrita desfaz a transação
+
+Ação / entrada:
+ocorre erro depois do início da transação e antes da conclusão da gravação.
+
+Resultado esperado:
+a transação é desfeita e o pedido não permanece parcialmente gravado no
+WinThor.
+
+### P3010-HU7-RN4 — O IDPEDIDOMASTER não pode reutilizar um master existente
+
+O `IDPEDIDOMASTER` do primeiro pedido deve ser obtido a partir do numerador de
+importação do WinThor (`PCNUMERADORIMP`).
+
+Antes de usar o próximo número, a aplicação deve garantir que ele não reutiliza
+um master já existente no período correspondente.
+
+Um pedido existente nunca deve ser apagado ou sobrescrito para liberar um
+identificador de master.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU7-RN4-CN1 — Próximo numerador livre pode ser usado
+
+Ação / entrada:
+o próximo número disponível no numerador de importação é maior que os masters já
+utilizados no período correspondente.
+
+Resultado esperado:
+a aplicação pode gerar um novo `IDPEDIDOMASTER` para o primeiro pedido.
+
+#### P3010-HU7-RN4-CN2 — Numerador que causaria colisão não pode ser usado
+
+Ação / entrada:
+o próximo número do numerador resultaria em um `IDPEDIDOMASTER` já existente.
+
+Resultado esperado:
+a aplicação não grava o pedido usando esse identificador conflitante.
+
+#### P3010-HU7-RN4-CN3 — Master existente não é removido para permitir nova gravação
+
+Ação / entrada:
+existe conflito entre o identificador que seria gerado e um master já gravado.
+
+Resultado esperado:
+o registro existente é preservado e a nova gravação não reutiliza esse
+identificador.
+
+### P3010-HU7-RN5 — O primeiro pedido grava cabeçalho e todos os itens válidos
+
+A gravação do primeiro pedido deve persistir o cabeçalho do pedido e todos os
+itens válidos pertencentes ao LAST processado.
+
+Os dados gravados devem refletir o contexto já validado nas etapas anteriores,
+sem depender de nova edição durante a escrita.
+
+Todos os itens do pedido devem permanecer vinculados ao mesmo pedido e ao mesmo
+master gerado para a operação.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+Status atual:
+HOMOLOGADO na base TESTE para o primeiro pedido.
+
+#### P3010-HU7-RN5-CN1 — Cabeçalho é persistido com os dados validados
+
+Ação / entrada:
+o pedido passa por todas as validações obrigatórias e entra na etapa de
+gravação.
+
+Resultado esperado:
+o cabeçalho do primeiro pedido é persistido com os dados validados da operação.
+
+#### P3010-HU7-RN5-CN2 — Todos os itens válidos são persistidos
+
+Ação / entrada:
+o LAST possui um ou mais itens válidos após resolução, tributação e cálculo.
+
+Resultado esperado:
+todos os itens válidos são gravados vinculados ao primeiro pedido.
+
+#### P3010-HU7-RN5-CN3 — Nenhum item válido pode ser omitido silenciosamente
+
+Ação / entrada:
+um item esperado não pode ser persistido durante a gravação.
+
+Resultado esperado:
+a gravação não é considerada concluída e deve seguir a regra de atomicidade da
+P3010-HU7-RN3.
+
+### P3010-HU7-RN6 — Os processamentos obrigatórios devem terminar antes do commit
+
+Depois da inserção do cabeçalho e dos itens, a aplicação deve executar os
+processamentos obrigatórios necessários para concluir a gravação do primeiro
+pedido.
+
+Esses processamentos fazem parte da mesma operação transacional e devem terminar
+com sucesso antes da confirmação definitiva da gravação.
+
+Demandas: legado — anterior à adoção deste padrão documental.
+
+#### P3010-HU7-RN6-CN1 — Processamentos concluídos permitem confirmar o pedido
+
+Ação / entrada:
+o cabeçalho e os itens foram inseridos e todos os processamentos obrigatórios
+posteriores foram concluídos com sucesso.
+
+Resultado esperado:
+a aplicação pode confirmar a transação e considerar o primeiro pedido gravado.
+
+#### P3010-HU7-RN6-CN2 — Falha em processamento posterior impede o commit
+
+Ação / entrada:
+um processamento obrigatório falha depois da inserção do cabeçalho ou dos
+itens.
+
+Resultado esperado:
+a gravação não é confirmada e deve seguir a regra de atomicidade da
+P3010-HU7-RN3.
+
+## Itens removidos
+
+Nenhum item removido até o momento.
+
+====================================================================================================
+DOCUMENTO 10/25: 04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
 ====================================================================================================
 
 # Validação — Evidências do trace da 3010 e do banco
@@ -1120,7 +2395,7 @@ Também não houve caso positivo útil de `QTMINSUGCOMPRA` ou
 `MULTIPLOCOMPRAS` na filial 4; esses campos permanecem apenas como diagnóstico.
 
 Detalhes, testes e critério de segurança:
-`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+`04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 Código implementado:
 
@@ -1130,7 +2405,7 @@ b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
 ```
 
 ====================================================================================================
-DOCUMENTO 11/24: 03_VALIDACOES/ROTEIRO_QTSUGESTAO.md
+DOCUMENTO 11/25: 04_VALIDACOES/ROTEIRO_QTSUGESTAO.md
 ====================================================================================================
 
 # Validação — QTSUGESTAO da rotina 3010
@@ -1402,7 +2677,7 @@ CONSIDERAESTPENDSUGCOMPRA = 'S'
 Esse cenário deve ser homologado antes de ser habilitado.
 
 ====================================================================================================
-DOCUMENTO 12/24: 03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
+DOCUMENTO 12/25: 04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
 ====================================================================================================
 
 # Validação — Rodadas de homologação (MIMO-HOMOLOG, base TESTE)
@@ -1443,7 +2718,7 @@ ainda não tinha evidência, e o texto diz quando uma hipótese caiu.
   sem de-para, porque o de-para do ensaio veio da planilha do time, parada em
   06/08).
 
-- **Roteiro de homologação** (`npm run homologacao`, `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`):
+- **Roteiro de homologação** (`npm run homologacao`, `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`):
   roda as consultas da APLICAÇÃO contra a base numa transação somente
   leitura (e recusa o que não for SELECT/WITH) e gera um relatório `.md`
   com ok / diferente / erro por item. Ensaiado contra banco falso (21
@@ -1757,7 +3032,7 @@ VLTOTAL           = Σ arred2(QT × parcela gravada): base, II, IPI, PIS, COFINS
                     (11841: 321.503,27 exato; somar sem arredondar cada parcela daria ,29)
 ```
 - **O custo leva o frete em dólar sem converter e não leva o AFRMM.** Parece
-  **erro da 3010**, a mesma mistura de moeda do CUSTOREP (03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md). A aplicação
+  **erro da 3010**, a mesma mistura de moeda do CUSTOREP (04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md). A aplicação
   replica (decisão 4: igual à 3010). **Avisar o time**; se decidirem corrigir,
   é uma linha em `calcularValoresItem`.
 - **Implementado:** `calculo/despesas.calculo.ts` (`ratearDespesas`, com o
@@ -1830,7 +3105,7 @@ VLTOTAL           = Σ arred2(QT × parcela gravada): base, II, IPI, PIS, COFINS
   VLTOTAL com os valores internos do cálculo (parcela × QT e soma).
   **Se isso também não fechar**, o VLTOTAL do 1º pedido fica com a regra de
   "parcela × QT" e uma diferença conhecida de até 2 centavos. É decisão do
-  time se isso importa: o contas a pagar nasce do 2º pedido (03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md).
+  time se isso importa: o contas a pagar nasce do 2º pedido (04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md).
 
 ## Homologação, 12ª rodada (24/09): CÁLCULO DO 1º PEDIDO FECHADO
 
@@ -1841,7 +3116,7 @@ itens:   sem frete 28 de 28 · com frete 43 de 43 → 71 de 71 iguais em tudo
 VLTOTAL: 8 de 11 exatos · 11839 −0,02 · 11838 −0,01 · 11833 +0,01
 ```
 Nem os valores internos fecham os 3 restantes: cada forma de somar acerta uns e
-erra outros. É arredondamento da própria tela. **Decisão (01_ARQUITETURA/DECISOES.md): até 2
+erra outros. É arredondamento da própria tela. **Decisão (07_DECISOES/DECISOES.md): até 2
 centavos aceitos.** O roteiro separa "exato" de "a até 2 centavos".
 
 **Resumo do que o cálculo cobre, provado contra a homologação:** 1º pedido sem
@@ -1996,7 +3271,7 @@ b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
   - `parametrosDaTela` (TIPOTRIBENTIMP e CON_USATRIBUTACAOPORUF): a consulta
     copiada é a do caminho que a tela seguiu com os valores desta base;
   - 9018, filial 4, fornecedor 15, China, porto 1 deve voltar 20 / 6,5 / 2,1 / 9,65.
-- **CORREÇÃO do 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md: o INSERT PCFORNECFILIAL da tela é de TODOS os
+- **CORREÇÃO do 04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md: o INSERT PCFORNECFILIAL da tela é de TODOS os
   fornecedores.** Trace, entradas 190 a 192: `INSERT ... SELECT` de PCFORNEC ×
   PCFILIAL onde falta, fora a filial 99, **sem filtro de fornecedor e sem
   parâmetro**, com COMMIT na hora, antes de o pedido existir. Por isso a rota
@@ -2018,7 +3293,7 @@ b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
 ---
 
 ====================================================================================================
-DOCUMENTO 13/24: 03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
+DOCUMENTO 13/25: 04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
 ====================================================================================================
 
 # Validação — Template × trace da 3010 e o teste de ouro da montagem
@@ -2035,7 +3310,7 @@ template P1             Template_-_PEDIDO_MASTER_3010.xlsx, aba INSERTS: as 136 
 ```
 
 O template fica **fora do Git** (é planilha de trabalho do time). O que importa
-dele está em `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md` e nas fixtures do
+dele está em `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md` e nas fixtures do
 repositório do código (`api/test/fixtures/template-3010-p1.json` e
 `trace-11681-inserts.json`).
 
@@ -2055,7 +3330,7 @@ duas escolhas do template: **CUSTOULTENT** lido do PCEST (a regra fechada na
 3ª rodada) e **QTSUGESTAO = 0**, onde a 3010 gravou −2.316. Essa diferença de
 `QTSUGESTAO` é histórica do template: em 30/09/2026 a conta foi homologada com
 o pedido nativo 11866 e passou a ser calculada pela aplicação; ver
-`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`. As colunas "só template" não têm como ser
+`04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`. As colunas "só template" não têm como ser
 conferidas pelo trace; quase todas são 0, NULL ou marcações ('S'/'N').
 
 ## 3. O teste de ouro da montagem (coberto por teste)
@@ -2103,7 +3378,7 @@ do Oracle, que só tira espaço, e essas invoices escapavam; corrigido (patch
 0040). A gravação grava a invoice sem espaço em branco nas pontas.
 
 ====================================================================================================
-DOCUMENTO 14/24: 03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
+DOCUMENTO 14/25: 04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
 ====================================================================================================
 
 # Validação — Primeiro pedido gravado pela aplicação (11858)
@@ -2183,7 +3458,7 @@ O 11858 foi gravado **antes** da correção do peso (patch 0049): o 15710 foi co
 O pedido fica na base como referência.
 
 ====================================================================================================
-DOCUMENTO 15/24: 03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
+DOCUMENTO 15/25: 04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
 ====================================================================================================
 
 # Validação — Time da importação com 3 LASTs da semana (25/09)
@@ -2201,7 +3476,7 @@ código corrigido.
 ```
 
 Os três foram **apagados da TESTE** para o reteste (roteiro em
-`05_OPERACAO/BASE_TESTE.md`). A linha "CNTR. NOS.:" dos LASTs (quantidade 1) é
+`06_OPERACAO/BASE_TESTE.md`). A linha "CNTR. NOS.:" dos LASTs (quantidade 1) é
 a dos contêineres: o comex descarta, e não é item.
 
 ## 2. O que o time apontou
@@ -2300,7 +3575,7 @@ masters     a partir de 1050/0426
 ```
 
 ====================================================================================================
-DOCUMENTO 16/24: 04_CONTRATOS/CONTRATO_COMEX_API.md
+DOCUMENTO 16/25: 05_CONTRATOS/CONTRATO_COMEX_API.md
 ====================================================================================================
 
 # Contrato — pedido-3010 com o comex-api
@@ -2374,7 +3649,7 @@ processo.erro                pendência LEITURA_FALHOU no pedido daquele arquivo
 ```
 
 ====================================================================================================
-DOCUMENTO 17/24: 04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
+DOCUMENTO 17/25: 05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
 ====================================================================================================
 
 # Contrato — Rotas da API pedido-3010
@@ -2439,7 +3714,7 @@ Resposta por arquivo: `02_FLUXOS/PREVIA_DOS_LASTS.md` (seção 7). `gravacaoAtiv
 diz à tela se a chave está ligada.
 
 ====================================================================================================
-DOCUMENTO 18/24: 04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
+DOCUMENTO 18/25: 05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
 ====================================================================================================
 
 # Contrato — As 309 colunas que a 3010 grava (PCITEM e PCPEDIDO)
@@ -2451,7 +3726,7 @@ para o mesmo pedido, a origem segundo a aba LEIA-ME e se os dois conferem.
 A montagem da API (`api/src/modules/gravacao/colunas-3010.ts`) foi **gerada
 desta tabela** e o teste de ouro (`montagem.spec.ts`) prova que ela reproduz o
 template nas 309 colunas e o trace nas 200 que ele mostra. Detalhes do
-cruzamento em `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`.
+cruzamento em `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`.
 
 O trace corta em 100 valores por comando: "só template" são as colunas depois
 do corte, que só o template tem.
@@ -2460,7 +3735,7 @@ do corte, que só o template tem.
 > a comparação histórica do pedido 11681 (`trace = -2316`, `template = 0`).
 > Ela não representa mais o comportamento atual da aplicação. A `QTSUGESTAO`
 > foi homologada depois com o pedido nativo 11866 e passou a ser calculada na
-> gravação; ver `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+> gravação; ver `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ## PCITEM: 173 colunas
 
@@ -2782,7 +4057,7 @@ do corte, que só o template tem.
 | 136 | `DEDUZIRICMSDIFBASEICMSATECIP` | — | 'S' | 'S' · PCPEDIDO | só template |
 
 ====================================================================================================
-DOCUMENTO 19/24: 05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
+DOCUMENTO 19/25: 06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
 ====================================================================================================
 
 # Operação — Configuração e execução
@@ -2898,7 +4173,7 @@ Arquivo baixado de novo com o mesmo nome vira `NOME (1).md` no Windows:
 para pegar o mais novo, `ls -t "$D"/NOME*.md | head -1`.
 
 ====================================================================================================
-DOCUMENTO 20/24: 05_OPERACAO/ROTEIRO_HOMOLOGACAO.md
+DOCUMENTO 20/25: 06_OPERACAO/ROTEIRO_HOMOLOGACAO.md
 ====================================================================================================
 
 # Operação — Roteiro de conferência na MIMO-HOMOLOG
@@ -3024,7 +4299,7 @@ Situação: **ok** confere · **DIFERENTE** não confere · **ERRO** não rodou
 | 2.21 | Cada pedido comparado: 1º ou 2º do master (NUMPEDMASTERORIGEM), se já teve entrada, se o VLTOTAL é o valor da entrada (VLENTREGUE) e se o II mudou em relação ao 1º | Pedido com frete que é 1º pedido: aí o frete importa para a aplicação, que só cria o 1º |
 | 2.22 | VLTOTAL: formas de arredondar (parcela × QT, item × QT, soma no fim, truncado, parcela antes do × QT) com os valores GRAVADOS, em cada 1º pedido | Só registro: a forma que bate em todos é a do cálculo; se for outra, o cálculo muda com teste |
 | 2.23 | Como a 3010 gravou em 2026 os campos do cabeçalho que a tela ainda não pede (frete, vencimento, embalagem, % a prazo, datas previstas, fornecedores fabricante e produtor, proforma, países) e o tamanho das colunas OBS | Só registro: decide se a tela ganha o campo ou se a gravação deduz |
-| 2.24 | Com `NUMPED_QTSUGESTAO`: exige pedido da rotina 3010; lê QTSUGESTAO, estoque, giro, pendência, prazo de entrega, tempo de reposição, mínimo e múltiplo; para filial sem estoque pendente testa `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE` item a item | **Info**. Caso homologado: pedido 11866, filial 4, 2/2 itens reproduzidos. `QTVEZES` não entra na conta-base observada. Filial com `CONSIDERAESTPENDSUGCOMPRA='S'` continua não homologada. Ver `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md` |
+| 2.24 | Com `NUMPED_QTSUGESTAO`: exige pedido da rotina 3010; lê QTSUGESTAO, estoque, giro, pendência, prazo de entrega, tempo de reposição, mínimo e múltiplo; para filial sem estoque pendente testa `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE` item a item | **Info**. Caso homologado: pedido 11866, filial 4, 2/2 itens reproduzidos. `QTVEZES` não entra na conta-base observada. Filial com `CONSIDERAESTPENDSUGCOMPRA='S'` continua não homologada. Ver `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md` |
 | 3.1 | `/saude` | A API não está no ar ou não vê o banco |
 | 3.2 | Login WinThor | Usuário fora do setor 18, senha errada, ou a consulta do login não bate com esta base · se pular, diz qual variável faltou |
 | 3.3 | `/cadastros/filiais` com a filial 4 | PCLIB do usuário |
@@ -3042,21 +4317,21 @@ NUMPED_QTSUGESTAO=<NUMPED> API_URL=nao npm run homologacao
 ```
 
 A regra homologada, o caso 11866 e o limite ainda não validado para filial com
-estoque pendente estão em `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+estoque pendente estão em `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ---
 
 ## 4. Depois
 
-O relatório vira evidência em `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md` (e o que mudou, no `CHANGELOG.md`). Cada **DIFERENTE** confirmado como
+O relatório vira evidência em `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md` (e o que mudou, no `CHANGELOG.md`). Cada **DIFERENTE** confirmado como
 erro vira correção **começando por um teste de regressão que falha**.
 
 Para o ensaio com o lote inteiro de planilhas (prévia de ponta a ponta), use
 o que já existe: `PLANILHAS_DIR=... npx jest --config ./test/jest-e2e.json`
-(05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).
+(06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).
 
 ====================================================================================================
-DOCUMENTO 21/24: 05_OPERACAO/BASE_TESTE.md
+DOCUMENTO 21/25: 06_OPERACAO/BASE_TESTE.md
 ====================================================================================================
 
 # Operação — Base TESTE (MIMO-HOMOLOG)
@@ -3184,7 +4459,7 @@ deixou **12 itens órfãos**; foram apagados depois com os gatilhos desligados.
 Sempre apague o PCITEM **antes** e confira os dois números antes do COMMIT.
 
 ====================================================================================================
-DOCUMENTO 22/24: 05_OPERACAO/SERVIDOR_E_PUBLICACAO.md
+DOCUMENTO 22/25: 06_OPERACAO/SERVIDOR_E_PUBLICACAO.md
 ====================================================================================================
 
 # Operação — Servidor e publicação
@@ -3271,7 +4546,68 @@ push em master com CI verde
 ```
 
 ====================================================================================================
-DOCUMENTO 23/24: CHANGELOG.md
+DOCUMENTO 23/25: 07_DECISOES/DECISOES.md
+====================================================================================================
+
+# Arquitetura — Decisões
+
+**Natureza:** decisão. Cada linha diz de onde veio: do Cleilson, do time da
+importação, ou de evidência (banco, trace, homologação). Decisão que muda
+comportamento vira teste no repositório do código.
+
+A coluna **#** mantém a numeração original das decisões de 22/09 (1 a 12, A e D),
+citada nos commits e nos testes.
+
+| # | Assunto | Decisão | De onde veio |
+|---|---|---|---|
+| — | Leitura | comex-api em Python, sem reescrever | `PROCESSO_EMISSAO_INVOICE.md` do próprio comex |
+| — | PCOMPRA | Preço **arredondado da invoice**, não o do LAST | Cleilson: o time lança o que sai na invoice |
+| 1 | NUMINVOCE | Invoice do LAST (`26MMC709F`) | 30 últimos pedidos da 3010 |
+| 1 | NUMPROFORMA | Igual ao NUMINVOCE | 25 de 30 iguais; os 5 diferentes são sobra do pedido anterior |
+| 1 | NUMNEGOCIACAO | Ano da invoice + sequência. Sugere maior da 3010 no ano + 1, editável | `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md` |
+| A | Validar negociação | Bloqueia vazio, 0, teste (1111, 11111, 1234...); avisa 4 dígitos, outro tamanho que não 5 (602, 266022) ou ano ≠ invoice | Cleilson |
+| 2 | Planilha x pedido | 1 planilha = 1 pedido | Cleilson |
+| 3 | Impostos | Vêm do cadastro tributário (como a tela), usuário confere | trace |
+| 4 | Efeitos colaterais | Atualizar PCPRODUT, PCFORNEC, PCPRODFILIAL **igual à 3010** | trace + Cleilson |
+| 5 | Fornecedor | Usuário escolhe sempre (a planilha só traz o nome) | Cleilson |
+| 6 | IDPEDIDOMASTER | Numerador PCNUMERADORIMP. Só o 1º pedido (ver `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`). **Texto**, ex.: `1046/0426` | banco + homologação |
+| 7 | VLTOTAL | **Em reais, com impostos**, calculado como a tela | trace: 619.353,60 |
+| 8 | Código x descrição | Avisa e trava até o usuário escolher | Cleilson |
+| 9 | Acesso | Setor 18 (IMPORTACAO) no PCEMPR | print da rotina 528 |
+| 10 | Desfazer | Permitido enquanto não houver entrada | Cleilson |
+| 11 | Testes | Primeiro na MIMO-HOMOLOG (172.20.20.13, serviço TESTE) | Cleilson |
+| 12 | Servidor | srv-fedora-r450, PM2, porta 3010, app em `/home/admin/apps/pedido-3010` | Cleilson |
+| D | Fornecedor + invoice repetidos | Avisa e deixa seguir, **com motivo obrigatório** | Cleilson |
+| — | Pedido sem item | NUNCA grava (a 3010 não mostra master sem PCITEM) | teste do template |
+| — | Backup | CI: `.bundle` do código (30 cópias). CD: versão no ar em `.tar.gz` (10 cópias) antes de trocar; sem backup não troca | Cleilson + scripts do .40 |
+| — | Gravação | Chave `GRAVACAO_3010_ATIVA=N` até a etapa 3 estar aprovada | projeto |
+| — | Tela | Aplicação Angular **separada da API**, não servida pelo NestJS | conversa da etapa 2 |
+| — | Porto da tributação | **Porto de nacionalização** (PCPEDIDO.CODPORTONACIONALIZACAO), não o de chegada | homologação: pedido 9726, 6/6 × 0/6 |
+| — | VLTOTAL do 1º pedido | Regra "parcela × QT a 2 casas"; **diferença de até 2 centavos aceita** (8 de 11 exatos, 3 a 1-2 centavos: arredondamento da própria tela). O contas a pagar nasce do 2º pedido | Cleilson, 24/09 |
+| — | Filial e comprador na tela | Escolhidos a cada pedido; a tela **não** lembra a última escolha (só marca a filial sozinha quando o usuário tem uma só na PCLIB) | Cleilson, 24/09 |
+| — | QTSUGESTAO | **Calcular como a 3010 no caminho homologado**: `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`; preservar resultado negativo; `QTVEZES` não entra na conta-base observada; filial com `CONSIDERAESTPENDSUGCOMPRA='S'` é recusada até esse ramo ser homologado | homologação 30/09, pedido 11866 |
+| — | PCFORNECFILIAL na gravação | **Igual à 3010**: todos os fornecedores nas filiais que faltam (fora a 99) | Cleilson, 24/09 |
+| — | Motivo da invoice repetida | **Nos dois**: **OBS7** ("Invoice repetida: ...", 100 caracteres; OBS4, OBS6 e OBS7 nunca usadas em 2026) e log da aplicação | Cleilson, 24 e 25/09 |
+| — | Item repetido no LAST | Uma linha só por produto, com a quantidade somada; preços diferentes vão pela **média ponderada** (mantém o total da invoice), com aviso mostrando os preços e a média | Time da importação, 25/09 |
+| — | Peso líquido da DI | **N.W. da linha ÷ quantidade** (o peso da invoice); o cadastro só quando o LAST não traz | Time da importação, 25/09 |
+| — | Avisos do comex na prévia | Saem: contêiner, porto de embarque, cliente, imagem dos dados bancários. Ficam: total FOB (sem bloquear), nome da fábrica, porto de destino, data da invoice | Time da importação, 25/09 |
+| — | Peso do LAST × cadastro | **Aviso** (não bloqueia) quando o peso do LAST difere **mais de 10%** do cadastro, para cima ou para baixo | Time da importação, 25/09 |
+| — | Prioridade da etapa 3 | 1º pedido **sem frete** primeiro, com os impostos do cadastro; edição de impostos e despesas depois | Cleilson, 24/09 |
+| — | Da prévia para a gravação | A tela guarda os arquivos e reenvia no "Gravar" com as escolhas; o servidor lê de novo, confere o SHA-256 e grava | Cleilson, 24/09 |
+| — | Cabeçalho do 1º pedido | FRETE C, TIPOVENC P, TIPOEMBALAGEMPEDIDO V, PERCAPRAZO 100 fixos; fabricante e produtor = fornecedor; países = origem; só a previsão de chegada é digitada | roteiro 2.23, 25/09 |
+| — | Restrições da tela | Produto que a 3010 esconderia na grade (sem tributação, fora de linha, proibido para venda, sem preço na região...) **trava** o item (`podeUsar` false) | Cleilson |
+
+## Decisões que ainda faltam
+
+```text
+qual ação da 3010 gera o 2º pedido do master (não bloqueia o 1º)
+onde a 3010 guarda os totais de frete e despesas (precisa de trace)
+QTSUGESTAO com CONSIDERAESTPENDSUGCOMPRA='S': homologar esse ramo antes de habilitar
+custo com o frete em dólar sem converter: replicar (hoje) ou corrigir (avisar o time)
+```
+
+====================================================================================================
+DOCUMENTO 24/25: CHANGELOG.md
 ====================================================================================================
 
 # Changelog — Documentação do pedido-3010
@@ -3306,7 +4642,7 @@ DOCUMENTO 23/24: CHANGELOG.md
 - A fórmula permanece **hipótese** até uma rodada real; a aplicação continua com
   `QTSUGESTAO = 0` provisório e a produção continua bloqueada.
 - Procedimento e critério de aceitação em
-  `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+  `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ## 2026-09-28 — Repositório documental próprio
 
@@ -3380,12 +4716,12 @@ DOCUMENTO 23/24: CHANGELOG.md
 
 ## 2026-09-22 — Etapa 1 (prévia) e decisões iniciais
 
-- Decisões 1 a 12, A e D (`01_ARQUITETURA/DECISOES.md`).
+- Decisões 1 a 12, A e D (`07_DECISOES/DECISOES.md`).
 - Prévia só de leitura: login WinThor (setor 18), leitura pelo comex, de-para,
   regra código × descrição, cadastros.
 
 ====================================================================================================
-DOCUMENTO 24/24: README.md
+DOCUMENTO 25/25: README.md
 ====================================================================================================
 
 # Documentação — pedido-3010 (pedido master de importação na rotina 3010)
@@ -3496,7 +4832,7 @@ regra do teste de regressão PASS
 
 O pedido 11681, lançado pela própria 3010 com trace, é a referência de tudo o que
 a gravação reproduz (sequência, colunas, blocos PL/SQL):
-`03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`.
+`04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`.
 
 ## 4. Onde começar
 
@@ -3506,24 +4842,30 @@ Leia nesta ordem:
 2. `01_ARQUITETURA/VISAO_GERAL.md`
 3. `01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md`
 4. `01_ARQUITETURA/AUTENTICACAO_WINTHOR.md`
-5. `01_ARQUITETURA/DECISOES.md`
-6. `02_FLUXOS/PREVIA_DOS_LASTS.md`
-7. `02_FLUXOS/CALCULO_DO_PEDIDO.md`
-8. `02_FLUXOS/GRAVACAO_NA_3010.md`
-9. `02_FLUXOS/TELA_DE_CONFERENCIA.md`
-10. `03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
-11. `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
-12. `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
-13. `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
-14. `03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
-15. `03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
-16. `04_CONTRATOS/CONTRATO_COMEX_API.md`
-17. `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
-18. `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
-19. `05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
-20. `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
-21. `05_OPERACAO/BASE_TESTE.md`
-22. `05_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
+5. `02_FLUXOS/PREVIA_DOS_LASTS.md`
+6. `02_FLUXOS/CALCULO_DO_PEDIDO.md`
+7. `02_FLUXOS/GRAVACAO_NA_3010.md`
+8. `02_FLUXOS/TELA_DE_CONFERENCIA.md`
+9. `03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md`
+10. `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
+11. `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
+12. `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
+13. `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
+14. `04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
+15. `04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
+16. `05_CONTRATOS/CONTRATO_COMEX_API.md`
+17. `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
+18. `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
+19. `06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
+20. `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
+21. `06_OPERACAO/BASE_TESTE.md`
+22. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
+23. `07_DECISOES/DECISOES.md`
+
+A `ESP_PEDIDO_MASTER.md` está em migração e ainda não substitui sozinha os
+documentos anteriores. Enquanto essa migração não for concluída, os fluxos,
+validações, contratos e decisões continuam sendo fontes complementares de
+referência.
 
 `CHANGELOG.md` registra a evolução documental.
 
@@ -3548,14 +4890,14 @@ Até 2026-09-25 a documentação ficava na pasta `docs/` do repositório do cód
 
 ```text
 docs/CONTINUAR.md    §0-§2   -> 00_STATUS/STATUS_PEDIDO_3010.md, 01_ARQUITETURA/VISAO_GERAL.md
-                     §3      -> 03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
-                     §4      -> 01_ARQUITETURA/DECISOES.md
-                     §5      -> 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
-                     §6-§9   -> 00_STATUS/STATUS_PEDIDO_3010.md, 05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
-docs/GRAVACAO.md             -> 02_FLUXOS/GRAVACAO_NA_3010.md, 03_VALIDACOES/*,
-                                04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md, 05_OPERACAO/BASE_TESTE.md
-docs/HOMOLOGACAO.md          -> 05_OPERACAO/ROTEIRO_HOMOLOGACAO.md
-docs/SERVIDOR.md             -> 05_OPERACAO/SERVIDOR_E_PUBLICACAO.md
+                     §3      -> 04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
+                     §4      -> 07_DECISOES/DECISOES.md
+                     §5      -> 04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
+                     §6-§9   -> 00_STATUS/STATUS_PEDIDO_3010.md, 06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
+docs/GRAVACAO.md             -> 02_FLUXOS/GRAVACAO_NA_3010.md, 04_VALIDACOES/*,
+                                05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md, 06_OPERACAO/BASE_TESTE.md
+docs/HOMOLOGACAO.md          -> 06_OPERACAO/ROTEIRO_HOMOLOGACAO.md
+docs/SERVIDOR.md             -> 06_OPERACAO/SERVIDOR_E_PUBLICACAO.md
 ```
 
 O `CONTINUAR.md` deixou de existir: o `00_STATUS` faz o papel dele, inclusive o de

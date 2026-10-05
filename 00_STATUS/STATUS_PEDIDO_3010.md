@@ -44,12 +44,12 @@ Anexe, conforme a tarefa:
 ## Checkpoint 2026-09-25 — primeiro pedido gravado e validação do time
 
 A gravação do 1º pedido (sem frete) rodou de ponta a ponta na homologação:
-**NUMPED 11858, master 1049/0426** (`03_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`),
+**NUMPED 11858, master 1049/0426** (`04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`),
 conferido no banco e na própria 3010.
 
 O time da importação gravou 3 LASTs da semana e apontou dois erros e quatro
 avisos a tirar; corrigidos nos patches 0048 a 0053
-(`03_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`):
+(`04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`):
 
 ```text
 peso líquido      PESOLIQDI = N.W. do LAST ÷ quantidade (antes: do cadastro)
@@ -249,7 +249,7 @@ conta-base reproduz 2/2
 
 Fora da sequência: `comex-api-rota-leitura.patch` e
 `comex-api-senha-fora-do-teste.patch`, aplicados no comex-api
-(`04_CONTRATOS/CONTRATO_COMEX_API.md`).
+(`05_CONTRATOS/CONTRATO_COMEX_API.md`).
 
 ## 3. Gate atual (25/09)
 
@@ -273,7 +273,7 @@ pedidos sem item         10483 a 10490 (testes do template) apagados antes
 gatilhos do PCITEM       os 3 ENABLED
 ```
 
-Roteiros: `05_OPERACAO/BASE_TESTE.md`.
+Roteiros: `06_OPERACAO/BASE_TESTE.md`.
 
 ## 5. Em aberto
 

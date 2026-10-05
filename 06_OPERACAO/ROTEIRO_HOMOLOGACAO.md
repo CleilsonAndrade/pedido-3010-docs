@@ -121,7 +121,7 @@ Situação: **ok** confere · **DIFERENTE** não confere · **ERRO** não rodou
 | 2.21 | Cada pedido comparado: 1º ou 2º do master (NUMPEDMASTERORIGEM), se já teve entrada, se o VLTOTAL é o valor da entrada (VLENTREGUE) e se o II mudou em relação ao 1º | Pedido com frete que é 1º pedido: aí o frete importa para a aplicação, que só cria o 1º |
 | 2.22 | VLTOTAL: formas de arredondar (parcela × QT, item × QT, soma no fim, truncado, parcela antes do × QT) com os valores GRAVADOS, em cada 1º pedido | Só registro: a forma que bate em todos é a do cálculo; se for outra, o cálculo muda com teste |
 | 2.23 | Como a 3010 gravou em 2026 os campos do cabeçalho que a tela ainda não pede (frete, vencimento, embalagem, % a prazo, datas previstas, fornecedores fabricante e produtor, proforma, países) e o tamanho das colunas OBS | Só registro: decide se a tela ganha o campo ou se a gravação deduz |
-| 2.24 | Com `NUMPED_QTSUGESTAO`: exige pedido da rotina 3010; lê QTSUGESTAO, estoque, giro, pendência, prazo de entrega, tempo de reposição, mínimo e múltiplo; para filial sem estoque pendente testa `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE` item a item | **Info**. Caso homologado: pedido 11866, filial 4, 2/2 itens reproduzidos. `QTVEZES` não entra na conta-base observada. Filial com `CONSIDERAESTPENDSUGCOMPRA='S'` continua não homologada. Ver `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md` |
+| 2.24 | Com `NUMPED_QTSUGESTAO`: exige pedido da rotina 3010; lê QTSUGESTAO, estoque, giro, pendência, prazo de entrega, tempo de reposição, mínimo e múltiplo; para filial sem estoque pendente testa `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE` item a item | **Info**. Caso homologado: pedido 11866, filial 4, 2/2 itens reproduzidos. `QTVEZES` não entra na conta-base observada. Filial com `CONSIDERAESTPENDSUGCOMPRA='S'` continua não homologada. Ver `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md` |
 | 3.1 | `/saude` | A API não está no ar ou não vê o banco |
 | 3.2 | Login WinThor | Usuário fora do setor 18, senha errada, ou a consulta do login não bate com esta base · se pular, diz qual variável faltou |
 | 3.3 | `/cadastros/filiais` com a filial 4 | PCLIB do usuário |
@@ -139,15 +139,15 @@ NUMPED_QTSUGESTAO=<NUMPED> API_URL=nao npm run homologacao
 ```
 
 A regra homologada, o caso 11866 e o limite ainda não validado para filial com
-estoque pendente estão em `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+estoque pendente estão em `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ---
 
 ## 4. Depois
 
-O relatório vira evidência em `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md` (e o que mudou, no `CHANGELOG.md`). Cada **DIFERENTE** confirmado como
+O relatório vira evidência em `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md` (e o que mudou, no `CHANGELOG.md`). Cada **DIFERENTE** confirmado como
 erro vira correção **começando por um teste de regressão que falha**.
 
 Para o ensaio com o lote inteiro de planilhas (prévia de ponta a ponta), use
 o que já existe: `PLANILHAS_DIR=... npx jest --config ./test/jest-e2e.json`
-(05_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).
+(06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).

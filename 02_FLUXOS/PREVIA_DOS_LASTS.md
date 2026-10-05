@@ -83,7 +83,7 @@ Passam para a tela em `ocorrenciasComex`, **menos** as que o time dispensou
 (25/09): `cabecalho.vazio` com `cntr_number` (contêiner), `port_loading` (porto de
 embarque) e `to` (cliente), e `conta.ausente` (imagem dos dados bancários). O
 total FOB vazio (`cabecalho.vazio` / `total_fob_price`) aparece, mas não vira
-pendência. Contrato em `04_CONTRATOS/CONTRATO_COMEX_API.md`.
+pendência. Contrato em `05_CONTRATOS/CONTRATO_COMEX_API.md`.
 
 ## 6. Invoice já lançada (decisão D)
 

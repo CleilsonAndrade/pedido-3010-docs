@@ -7,7 +7,7 @@ para o mesmo pedido, a origem segundo a aba LEIA-ME e se os dois conferem.
 A montagem da API (`api/src/modules/gravacao/colunas-3010.ts`) foi **gerada
 desta tabela** e o teste de ouro (`montagem.spec.ts`) prova que ela reproduz o
 template nas 309 colunas e o trace nas 200 que ele mostra. Detalhes do
-cruzamento em `03_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`.
+cruzamento em `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`.
 
 O trace corta em 100 valores por comando: "só template" são as colunas depois
 do corte, que só o template tem.
@@ -16,7 +16,7 @@ do corte, que só o template tem.
 > a comparação histórica do pedido 11681 (`trace = -2316`, `template = 0`).
 > Ela não representa mais o comportamento atual da aplicação. A `QTSUGESTAO`
 > foi homologada depois com o pedido nativo 11866 e passou a ser calculada na
-> gravação; ver `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+> gravação; ver `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ## PCITEM: 173 colunas
 

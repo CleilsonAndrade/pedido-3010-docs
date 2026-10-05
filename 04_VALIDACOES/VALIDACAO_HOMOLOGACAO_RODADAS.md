@@ -36,7 +36,7 @@ ainda não tinha evidência, e o texto diz quando uma hipótese caiu.
   sem de-para, porque o de-para do ensaio veio da planilha do time, parada em
   06/08).
 
-- **Roteiro de homologação** (`npm run homologacao`, `05_OPERACAO/ROTEIRO_HOMOLOGACAO.md`):
+- **Roteiro de homologação** (`npm run homologacao`, `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`):
   roda as consultas da APLICAÇÃO contra a base numa transação somente
   leitura (e recusa o que não for SELECT/WITH) e gera um relatório `.md`
   com ok / diferente / erro por item. Ensaiado contra banco falso (21
@@ -350,7 +350,7 @@ VLTOTAL           = Σ arred2(QT × parcela gravada): base, II, IPI, PIS, COFINS
                     (11841: 321.503,27 exato; somar sem arredondar cada parcela daria ,29)
 ```
 - **O custo leva o frete em dólar sem converter e não leva o AFRMM.** Parece
-  **erro da 3010**, a mesma mistura de moeda do CUSTOREP (03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md). A aplicação
+  **erro da 3010**, a mesma mistura de moeda do CUSTOREP (04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md). A aplicação
   replica (decisão 4: igual à 3010). **Avisar o time**; se decidirem corrigir,
   é uma linha em `calcularValoresItem`.
 - **Implementado:** `calculo/despesas.calculo.ts` (`ratearDespesas`, com o
@@ -423,7 +423,7 @@ VLTOTAL           = Σ arred2(QT × parcela gravada): base, II, IPI, PIS, COFINS
   VLTOTAL com os valores internos do cálculo (parcela × QT e soma).
   **Se isso também não fechar**, o VLTOTAL do 1º pedido fica com a regra de
   "parcela × QT" e uma diferença conhecida de até 2 centavos. É decisão do
-  time se isso importa: o contas a pagar nasce do 2º pedido (03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md).
+  time se isso importa: o contas a pagar nasce do 2º pedido (04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md).
 
 ## Homologação, 12ª rodada (24/09): CÁLCULO DO 1º PEDIDO FECHADO
 
@@ -434,7 +434,7 @@ itens:   sem frete 28 de 28 · com frete 43 de 43 → 71 de 71 iguais em tudo
 VLTOTAL: 8 de 11 exatos · 11839 −0,02 · 11838 −0,01 · 11833 +0,01
 ```
 Nem os valores internos fecham os 3 restantes: cada forma de somar acerta uns e
-erra outros. É arredondamento da própria tela. **Decisão (01_ARQUITETURA/DECISOES.md): até 2
+erra outros. É arredondamento da própria tela. **Decisão (07_DECISOES/DECISOES.md): até 2
 centavos aceitos.** O roteiro separa "exato" de "a até 2 centavos".
 
 **Resumo do que o cálculo cobre, provado contra a homologação:** 1º pedido sem
@@ -589,7 +589,7 @@ b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
   - `parametrosDaTela` (TIPOTRIBENTIMP e CON_USATRIBUTACAOPORUF): a consulta
     copiada é a do caminho que a tela seguiu com os valores desta base;
   - 9018, filial 4, fornecedor 15, China, porto 1 deve voltar 20 / 6,5 / 2,1 / 9,65.
-- **CORREÇÃO do 03_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md: o INSERT PCFORNECFILIAL da tela é de TODOS os
+- **CORREÇÃO do 04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md: o INSERT PCFORNECFILIAL da tela é de TODOS os
   fornecedores.** Trace, entradas 190 a 192: `INSERT ... SELECT` de PCFORNEC ×
   PCFILIAL onde falta, fora a filial 99, **sem filtro de fornecedor e sem
   parâmetro**, com COMMIT na hora, antes de o pedido existir. Por isso a rota

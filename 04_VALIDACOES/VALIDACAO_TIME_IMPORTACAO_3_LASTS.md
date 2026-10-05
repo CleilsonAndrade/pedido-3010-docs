@@ -13,7 +13,7 @@ código corrigido.
 ```
 
 Os três foram **apagados da TESTE** para o reteste (roteiro em
-`05_OPERACAO/BASE_TESTE.md`). A linha "CNTR. NOS.:" dos LASTs (quantidade 1) é
+`06_OPERACAO/BASE_TESTE.md`). A linha "CNTR. NOS.:" dos LASTs (quantidade 1) é
 a dos contêineres: o comex descarta, e não é item.
 
 ## 2. O que o time apontou

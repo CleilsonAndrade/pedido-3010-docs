@@ -2,7 +2,7 @@
 
 Os valores de cada PCITEM e o VLTOTAL do PCPEDIDO, calculados como a 3010 grava.
 Regras **deduzidas da homologação e conferidas até a 6ª casa** (rodadas 8ª a
-12ª, `03_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`); implementadas em
+12ª, `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`); implementadas em
 `api/src/modules/calculo/` e cobertas por teste com pedidos reais como fixture.
 
 ```text
@@ -64,7 +64,7 @@ POST /api/v1/calculo/pedido       calcula, não grava
 Recebe os itens (CODPROD, QT, PCOMPRA, percentuais), a cotação e os totais do
 pedido; devolve os valores por item (como o PCITEM), o VLTOTAL e as pendências
 (item sem PESOLIQDI com despesa vira pendência: o rateio recusa repartir sem
-peso). Contrato em `04_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`.
+peso). Contrato em `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`.
 
 ## 4. Peso (PESOLIQDI)
 

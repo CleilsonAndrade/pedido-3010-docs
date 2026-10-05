@@ -30,7 +30,7 @@
 - A fórmula permanece **hipótese** até uma rodada real; a aplicação continua com
   `QTSUGESTAO = 0` provisório e a produção continua bloqueada.
 - Procedimento e critério de aceitação em
-  `03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+  `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 ## 2026-09-28 — Repositório documental próprio
 
@@ -104,6 +104,6 @@
 
 ## 2026-09-22 — Etapa 1 (prévia) e decisões iniciais
 
-- Decisões 1 a 12, A e D (`01_ARQUITETURA/DECISOES.md`).
+- Decisões 1 a 12, A e D (`07_DECISOES/DECISOES.md`).
 - Prévia só de leitura: login WinThor (setor 18), leitura pelo comex, de-para,
   regra código × descrição, cadastros.

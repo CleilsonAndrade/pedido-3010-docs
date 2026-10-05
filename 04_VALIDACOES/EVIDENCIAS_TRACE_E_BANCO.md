@@ -132,7 +132,7 @@ Também não houve caso positivo útil de `QTMINSUGCOMPRA` ou
 `MULTIPLOCOMPRAS` na filial 4; esses campos permanecem apenas como diagnóstico.
 
 Detalhes, testes e critério de segurança:
-`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
+`04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`.
 
 Código implementado:
 

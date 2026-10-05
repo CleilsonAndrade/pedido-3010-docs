@@ -12,7 +12,7 @@ template P1             Template_-_PEDIDO_MASTER_3010.xlsx, aba INSERTS: as 136 
 ```
 
 O template fica **fora do Git** (é planilha de trabalho do time). O que importa
-dele está em `04_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md` e nas fixtures do
+dele está em `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md` e nas fixtures do
 repositório do código (`api/test/fixtures/template-3010-p1.json` e
 `trace-11681-inserts.json`).
 
@@ -32,7 +32,7 @@ duas escolhas do template: **CUSTOULTENT** lido do PCEST (a regra fechada na
 3ª rodada) e **QTSUGESTAO = 0**, onde a 3010 gravou −2.316. Essa diferença de
 `QTSUGESTAO` é histórica do template: em 30/09/2026 a conta foi homologada com
 o pedido nativo 11866 e passou a ser calculada pela aplicação; ver
-`03_VALIDACOES/ROTEIRO_QTSUGESTAO.md`. As colunas "só template" não têm como ser
+`04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`. As colunas "só template" não têm como ser
 conferidas pelo trace; quase todas são 0, NULL ou marcações ('S'/'N').
 
 ## 3. O teste de ouro da montagem (coberto por teste)
