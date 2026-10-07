@@ -12,6 +12,8 @@
 - O checkpoint de 25/09 deixou de fazer parte da fotografia atual do STATUS e permanece preservado como histórico e nas validações específicas.
 - A seção permanente de modo de trabalho foi movida do STATUS para o README.
 - Criada `04_VALIDACOES/MATRIZ_VALIDACAO.md`, inicialmente rastreando os 85 critérios de aceite da ESP sem inferir estados não sustentados pelos documentos.
+- Reconciliação da matriz concluída: **85/85 critérios de aceite** ligados a evidência conhecida, preservando a diferença entre homologação funcional, testes automatizados, reteste pendente e inspeção de código.
+- O cenário de pedido cancelado (`P3010-HU2-RN9-CN4`) permanece apenas como comportamento implementado por inspeção da consulta; teste/homologação específicos continuam a validar.
 
 ## 2026-09-30 — QTSUGESTAO homologada e implementada
 
