@@ -2,17 +2,17 @@
 
 **Projeto:** `pedido-3010`
 **Branch acompanhada:** `master`
-**Data de referência:** 2026-09-30
-**HEAD acompanhado:** `b813ceb feat: calcula QTSUGESTAO como a rotina 3010`
-**HEAD remoto acompanhado:** `origin/master` em `b813ceb`
-**Situação do checkpoint:** gravação do 1º pedido validada na TESTE; `QTSUGESTAO` homologada e implementada; produção ainda não publicada e protegida por `GRAVACAO_3010_ATIVA`
+**Data de referência:** 2026-10-07
+**HEAD acompanhado:** `51346d6 test: restaura gate da API após cotação BCB`
+**HEAD remoto acompanhado:** `origin/master` em `51346d6`
+**Situação do checkpoint:** 1º pedido homologado na TESTE; `QTSUGESTAO` homologada no ramo `CONSIDERAESTPENDSUGCOMPRA=N`; evoluções posteriores a `b813ceb` com gate técnico verde e homologação funcional pendente; produção não publicada
 **Serviços consumidos:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor
 
 ---
 
 <!-- DOC_VALIDACAO_TIME_2026_09_25:start -->
 
-### Checkpoint atual — primeiro pedido gravado e validação do time da importação
+### Checkpoint histórico de 25/09 — primeiro pedido gravado e validação do time da importação
 
 Em 2026-09-25 a aplicação gravou o primeiro pedido na homologação:
 
@@ -77,8 +77,10 @@ a 3010 grava; o 2º pedido continua sendo criado pela própria 3010.
 
 ## 2. Estado validado
 
-- a prévia lê os LASTs pelo comex, resolve o de-para e aplica as regras; nenhuma
-  rota além da gravação escreve no banco (há teste);
+- a prévia lê os LASTs pelo comex, resolve o de-para e aplica as regras;
+- as escritas no WinThor ficam restritas aos fluxos explícitos de gravação:
+  pedido, protegido por `GRAVACAO_3010_ATIVA`, e cotação BCB/PTAX, protegida por
+  `COTACAO_BCB_GRAVACAO_ATIVA`;
 - o cálculo do 1º pedido reproduz a homologação: 71 de 71 itens, VLTOTAL a até 2
   centavos;
 - a gravação monta as 309 colunas como a 3010 (teste de ouro contra o template e
@@ -91,16 +93,21 @@ a 3010 grava; o 2º pedido continua sendo criado pela própria 3010.
   `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`;
   implementação em `b813ceb`, com `c96e389` corrigindo a fonte do giro para
   `PCEST.QTGIRODIA`.
+- as evoluções posteriores a `b813ceb` — BCB/PTAX + 5%, defaults de filial/comprador, proteção concorrente da cotação e validação da cronologia — estão implementadas e com gate técnico verde, mas ainda aguardam homologação funcional.
 
-### Gate (25/09)
+### Gate técnico atual — 06/10/2026
 
-```text
-API unidade        318 / 318 PASS
-API ponta a ponta  48 PASS, 2 pulados
-tela               69 / 69 PASS
-tsc / eslint / build        PASS
-regra do teste de regressão PASS
-```
+Código validado: `pedido-3010 @ 51346d6`.
+
+    API    lint             PASS
+    API    unidade          349 / 349 PASS
+    API    ponta a ponta    48 PASS, 2 pulados
+    API    build            PASS
+    API    diff --check     PASS
+    tela   Vitest           76 / 76 PASS
+    tela   build            PASS
+
+Os 2 testes E2E pulados dependem do `comex-api` real e/ou das planilhas externas de homologação.
 
 ## 3. Evidência de referência
 
@@ -121,20 +128,21 @@ Leia nesta ordem:
 7. `02_FLUXOS/GRAVACAO_NA_3010.md`
 8. `02_FLUXOS/TELA_DE_CONFERENCIA.md`
 9. `03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md`
-10. `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
-11. `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
-12. `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
-13. `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
-14. `04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
-15. `04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
-16. `05_CONTRATOS/CONTRATO_COMEX_API.md`
-17. `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
-18. `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
-19. `06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
-20. `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
-21. `06_OPERACAO/BASE_TESTE.md`
-22. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
-23. `07_DECISOES/DECISOES.md`
+10. `04_VALIDACOES/MATRIZ_VALIDACAO.md`
+11. `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
+12. `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
+13. `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
+14. `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
+15. `04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
+16. `04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
+17. `05_CONTRATOS/CONTRATO_COMEX_API.md`
+18. `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
+19. `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
+20. `06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
+21. `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
+22. `06_OPERACAO/BASE_TESTE.md`
+23. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
+24. `07_DECISOES/DECISOES.md`
 
 A `ESP_PEDIDO_MASTER.md` está em migração e ainda não substitui sozinha os
 documentos anteriores. Enquanto essa migração não for concluída, os fluxos,
@@ -157,6 +165,19 @@ Não registrar senha, `.env` real, preço de fornecedor nem LAST neste repositó
 
 `DOCUMENTACAO_ATIVA_COMPLETA.txt` é derivado dos documentos canônicos e deve ser
 regenerado com `tools/regenerate_consolidated.py`.
+
+### Como trabalhar neste projeto
+
+```text
+correção de bug       começa por um teste de regressão que falha (gancho + CI)
+evidência             dado real do banco, trace ou LAST real; hipótese é dita como hipótese
+toda gravação         precisa de caminho de volta
+explicação            fluxo passo a passo, exemplo concreto primeiro, sem termos em inglês
+git                   comandos com saída sempre com --no-pager
+patches               aplicar só na máquina em uso e fazer push; na outra, pull --rebase
+entrega               todo commit de código vira patch; conferir "commits = patches" e
+                      aplicar os patches numa cópia limpa antes de entregar
+```
 
 ## 6. De onde veio cada documento
 

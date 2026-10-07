@@ -33,7 +33,9 @@ citada nos commits e nos testes.
 | — | Tela | Aplicação Angular **separada da API**, não servida pelo NestJS | conversa da etapa 2 |
 | — | Porto da tributação | **Porto de nacionalização** (PCPEDIDO.CODPORTONACIONALIZACAO), não o de chegada | homologação: pedido 9726, 6/6 × 0/6 |
 | — | VLTOTAL do 1º pedido | Regra "parcela × QT a 2 casas"; **diferença de até 2 centavos aceita** (8 de 11 exatos, 3 a 1-2 centavos: arredondamento da própria tela). O contas a pagar nasce do 2º pedido | Cleilson, 24/09 |
-| — | Filial e comprador na tela | Escolhidos a cada pedido; a tela **não** lembra a última escolha (só marca a filial sozinha quando o usuário tem uma só na PCLIB) | Cleilson, 24/09 |
+| — | Filial e comprador na tela | Aplicar filial `4` e comprador `201` como defaults quando estiverem disponíveis ao usuário; não forçar default inexistente e manter ambos editáveis | implementação `89e1883` + `P3010-HU3-RN1` |
+| — | Cotação USD do dia | Consultar BCB/PTAX, preferir fechamento do dia e aplicar acréscimo de 5%; escrita automática no WinThor somente com `COTACAO_BCB_GRAVACAO_ATIVA` habilitada; cotação histórica não é sobrescrita | implementação `2acd70e`/`3f3b652` + `P3010-HU4` |
+| — | Cronologia das datas | Recusar chegada anterior ao embarque e entrada anterior à chegada; datas iguais são permitidas; validação existe na tela e na API | implementação `a5362cd` + `P3010-HU3-RN8` |
 | — | QTSUGESTAO | **Calcular como a 3010 no caminho homologado**: `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`; preservar resultado negativo; `QTVEZES` não entra na conta-base observada; filial com `CONSIDERAESTPENDSUGCOMPRA='S'` é recusada até esse ramo ser homologado | homologação 30/09, pedido 11866 |
 | — | PCFORNECFILIAL na gravação | **Igual à 3010**: todos os fornecedores nas filiais que faltam (fora a 99) | Cleilson, 24/09 |
 | — | Motivo da invoice repetida | **Nos dois**: **OBS7** ("Invoice repetida: ...", 100 caracteres; OBS4, OBS6 e OBS7 nunca usadas em 2026) e log da aplicação | Cleilson, 24 e 25/09 |

@@ -1,14 +1,14 @@
 ====================================================================================================
-DOCUMENTO 01/25: 00_STATUS/STATUS_PEDIDO_3010.md
+DOCUMENTO 01/26: 00_STATUS/STATUS_PEDIDO_3010.md
 ====================================================================================================
 
 # STATUS — pedido-3010
 
 **Status documental:** EM MIGRAÇÃO para o modelo documental com ESP
-**Data de referência:** 2026-10-06
+**Data de referência:** 2026-10-07
 **Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
 **Branch:** `master`
-**HEAD acompanhado:** `51346d6 fix: valida cronologia das datas previstas`
+**HEAD acompanhado:** `51346d6 test: restaura gate da API após cotação BCB`
 **Remoto acompanhado:** `origin/master` em `51346d6`
 **Baseline funcional homologado:** `b813ceb feat: calcula QTSUGESTAO como a rotina 3010`
 **Estado:** primeiro pedido homologado na TESTE e `QTSUGESTAO` homologada no ramo `CONSIDERAESTPENDSUGCOMPRA=N`; evoluções posteriores até `51346d6` implementadas e testadas, mas ainda sem homologação funcional; produção não publicada e protegida por `GRAVACAO_3010_ATIVA`
@@ -44,38 +44,14 @@ Anexe, conforme a tarefa:
 | `TRACE3010_-_PEDIDO_MASTER_2.log` | se for mexer na sequência da gravação |
 | traces novos da 3010 | frete e despesas; QTSUGESTAO |
 
-<!-- DOC_VALIDACAO_TIME_2026_09_25:start -->
-
-## Checkpoint 2026-09-25 — primeiro pedido gravado e validação do time
-
-A gravação do 1º pedido (sem frete) rodou de ponta a ponta na homologação:
-**NUMPED 11858, master 1049/0426** (`04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`),
-conferido no banco e na própria 3010.
-
-O time da importação gravou 3 LASTs da semana e apontou dois erros e quatro
-avisos a tirar; corrigidos nos patches 0048 a 0053
-(`04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`):
-
-```text
-peso líquido      PESOLIQDI = N.W. do LAST ÷ quantidade (antes: do cadastro)
-item repetido     uma linha só, preço médio ponderado
-avisos            lista nova que não bloqueia (total FOB, item repetido, sem peso,
-                  peso > 10% do cadastro)
-comex             4 avisos dispensados; total FOB vazio não bloqueia
-```
-
-Os 3 pedidos do time (11859 a 11861) foram apagados da TESTE; **o reteste com o
-código corrigido está pendente**.
-<!-- DOC_VALIDACAO_TIME_2026_09_25:end -->
-
 ## 1. Estado atual
 
 - Primeiro pedido homologado na base TESTE: `NUMPED 11858`, master `1049/0426`.
 - `QTSUGESTAO` homologada para `CONSIDERAESTPENDSUGCOMPRA=N`, com o pedido nativo `11866` reproduzindo 2/2 itens.
 - O ramo `CONSIDERAESTPENDSUGCOMPRA=S` continua não homologado e bloqueado pela aplicação.
-- O código atual avançou de `b813ceb` até `51346d6` com BCB/PTAX + 5%, defaults de filial/comprador, proteção concorrente da cotação e validação da cronologia das datas.
+- As evoluções funcionais posteriores a `b813ceb` chegaram até `a5362cd`, com BCB/PTAX + 5%, defaults de filial/comprador, proteção concorrente da cotação e validação da cronologia das datas. O commit `51346d6` restaurou e validou o gate técnico da API após essas mudanças.
 - Essas evoluções posteriores estão implementadas e cobertas por testes automatizados, mas ainda aguardam homologação funcional.
-- O pedido `11869` evidenciou a cronologia inválida antes de `51346d6`; ele não representa homologação pós-correção.
+- O pedido `11869` evidenciou a cronologia inválida antes de `a5362cd`; ele não representa homologação pós-correção.
 - Produção continua não publicada.
 
 ## 2. Histórico de implementação
@@ -84,76 +60,62 @@ A evolução detalhada dos patches `0001` a `0055` e o fechamento da `QTSUGESTAO
 
 A cronologia das mudanças permanece registrada também em `CHANGELOG.md`.
 
-## 3. Gate atual (25/09)
+## 3. Gate técnico atual — 06/10/2026
+
+Código validado: `pedido-3010 @ 51346d6`.
 
 ```text
-API    unidade          318 / 318 PASS
-API    ponta a ponta    48 PASS, 2 pulados (dependem do comex no ar)
-tela   Vitest           69 / 69 PASS
-tsc, eslint, build      PASS (API e tela)
-regra do teste de regressão   PASS (todos os fix com teste)
-cópia limpa             os 53 patches aplicam sobre o pacote original
+API    lint             PASS
+API    unidade          349 / 349 PASS
+API    ponta a ponta    48 PASS, 2 pulados
+API    build            PASS
+API    diff --check     PASS
+tela   Vitest           76 / 76 PASS
+tela   build            PASS
 ```
 
-## 4. Base TESTE (homologação)
+Os 2 testes E2E pulados dependem do `comex-api` real e/ou das planilhas externas de homologação.
 
-```text
-serviço                  TESTE em 172.20.20.13 (não CDBTST)
-PCNUMERADORIMP 2026      1050 (acertado em 25/09; estava em 406 com 1048 em uso)
-PCCONSUM                 não devolvido
-pedidos da aplicação     11858 (fica, referência); 11859 a 11861 apagados
-pedidos sem item         10483 a 10490 (testes do template) apagados antes
-gatilhos do PCITEM       os 3 ENABLED
-```
+O gate anterior de 25/09 foi preservado em `99_HISTORICO/ARQUIVADOS/GATE_2026-09-25.md`.
 
-Roteiros: `06_OPERACAO/BASE_TESTE.md`.
+## 4. Base TESTE — evidências de homologação
+
+A base TESTE foi usada nas homologações documentadas do projeto.
+
+- `11858` (`1049/0426`): primeiro pedido gravado e homologado como referência.
+- `11866`: pedido nativo usado para homologar a `QTSUGESTAO` no ramo `CONSIDERAESTPENDSUGCOMPRA=N`; 2/2 itens reproduzidos pela aplicação.
+- `11869`: evidência da cronologia inválida permitida antes de `a5362cd`; não representa homologação pós-correção.
+- O ramo `CONSIDERAESTPENDSUGCOMPRA=S` continua não homologado e bloqueado pela aplicação.
+- Antes de nova homologação, conferir novamente `PCCONSUM`, `PCNUMERADORIMP` e os maiores números já usados; os valores registrados em 25/09 são históricos.
+
+O procedimento operacional e o snapshot de 25/09 permanecem em `06_OPERACAO/BASE_TESTE.md`.
 
 ## 5. Em aberto
 
-```text
-QTSUGESTAO/S      filial com CONSIDERAESTPENDSUGCOMPRA='S' ainda não homologada;
-                  a API recusa esse ramo até existir evidência da 3010.
-2º pedido         qual ação da 3010 o gera e por que o VLTOTAL muda (não bloqueia)
-frete e despesas  onde a 3010 guarda os totais, em que moeda se digita o frete, se o
-                  AFRMM é digitado: precisa do trace de um lançamento com despesas
-custo em dólar    a 3010 soma o frete em USD sem converter no CUSTOULTPEDCOMPRA;
-                  replicado; AVISAR O TIME
-comex             levar a regra código × descrição para o comex (hoje só no pedido-3010)
-tela              impostos editáveis; frete e despesas; publicação (servidor que entrega
-                  o dist e repassa /api)
-API               CORS só para o endereço da tela (hoje aceita qualquer origem)
-desfazer          rota prevista (só sem entrada), não implementada
-backups do .40    teste de restauração pendente; MSSRV005 no Ubuntu 18.04
-```
+- **Homologação pós-`b813ceb`:** BCB/PTAX + 5%, defaults de filial/comprador, proteção concorrente da cotação e validação da cronologia estão implementados e com gate técnico verde, mas ainda aguardam homologação funcional.
+- **Cronologia:** executar homologação pós-`a5362cd`; o pedido `11869` prova apenas o comportamento incorreto anterior à correção.
+- **QTSUGESTAO/S:** filial com `CONSIDERAESTPENDSUGCOMPRA=S` continua não homologada e bloqueada até existir evidência da 3010.
+- **2º pedido:** identificar qual ação da 3010 o gera e por que o `VLTOTAL` muda; não bloqueia o primeiro pedido.
+- **Frete e despesas:** confirmar no trace onde a 3010 persiste os totais, moeda usada no frete e tratamento do AFRMM.
+- **Custo em dólar:** a reprodução atual soma frete em USD sem conversão no `CUSTOULTPEDCOMPRA`, conforme comportamento observado; manter o alerta ao time até validação funcional.
+- **COMEX:** avaliar mover para o `comex-api` a regra de código × descrição que hoje também é tratada no `pedido-3010`.
+- **Tela:** impostos editáveis, frete/despesas e publicação ainda não concluídos.
+- **API:** restringir CORS quando o endereço definitivo da tela estiver definido.
+- **Desfazer:** fluxo previsto para pedido sem entrada, ainda não implementado.
+- **Produção:** não publicada; `GRAVACAO_3010_ATIVA` deve permanecer controlada até decisão explícita de ativação.
 
 ## 6. Próximos passos, em ordem
 
-```text
-1. reteste do time com os 3 LASTs (26MIW185F, 26MOC267F, 26MSR296F) no ambiente novo
-   de teste; conferir PJ10PCM numa linha e os pesos do LAST (VALIDACAO_TIME, seção 7)
-2. impostos editáveis na tela
-3. frete e despesas (depois do trace)
-4. publicação da tela
-5. produção: GRAVACAO_3010_ATIVA=S por decisão, primeiro para um usuário
-6. se aparecer filial com CONSIDERAESTPENDSUGCOMPRA='S', homologar esse ramo
-   antes de permitir gravação nela
-```
-
-## 7. Como trabalhar neste projeto
-
-```text
-correção de bug       começa por um teste de regressão que falha (gancho + CI)
-evidência             dado real do banco, trace ou LAST real; hipótese é dita como hipótese
-toda gravação         precisa de caminho de volta
-explicação            fluxo passo a passo, exemplo concreto primeiro, sem termos em inglês
-git                   comandos com saída sempre com --no-pager
-patches               aplicar só na máquina em uso e fazer push; na outra, pull --rebase
-entrega               todo commit de código vira patch; conferir "commits = patches" e
-                      aplicar os patches numa cópia limpa antes de entregar
-```
+1. **Homologar as evoluções posteriores a `b813ceb` na TESTE:** BCB/PTAX + 5%, defaults de filial/comprador, proteção da cotação e cronologia das datas; registrar evidências sem reutilizar o `11869` como homologação pós-correção.
+2. **Retestar o fluxo já homologado com os LASTs do time** (`26MIW185F`, `26MOC267F`, `26MSR296F`), incluindo pesos do LAST e conferências já previstas no roteiro de validação.
+3. **Obter trace de frete e despesas** para fechar persistência, moeda do frete e AFRMM antes de evoluir esse trecho.
+4. **Evoluir a tela** com impostos editáveis e frete/despesas somente depois das regras correspondentes estarem validadas.
+5. **Preparar publicação da tela e restringir CORS** para o endereço definitivo da aplicação.
+6. **Planejar ativação em produção** somente após homologação funcional, mantendo `GRAVACAO_3010_ATIVA` controlada e iniciando com escopo restrito.
+7. **Homologar `CONSIDERAESTPENDSUGCOMPRA=S` apenas quando houver caso real/evidência da 3010**; até lá, manter o bloqueio atual.
 
 ====================================================================================================
-DOCUMENTO 02/25: 01_ARQUITETURA/VISAO_GERAL.md
+DOCUMENTO 02/26: 01_ARQUITETURA/VISAO_GERAL.md
 ====================================================================================================
 
 # Arquitetura — Visão Geral
@@ -228,7 +190,7 @@ A arquitetura segue a do `amazon-winthor-integration`: login WinThor, logs com i
 de rastreio, validação do `.env` na subida, PM2.
 
 ====================================================================================================
-DOCUMENTO 03/25: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
+DOCUMENTO 03/26: 01_ARQUITETURA/FRONTEIRA_COMEX_API_WINTHOR.md
 ====================================================================================================
 
 # Arquitetura — Fronteira comex-api × pedido-3010 × WinThor
@@ -281,7 +243,7 @@ API -> Oracle        DB_HOST / DB_SERVICE_NAME; homologação = serviço TESTE e
 ```
 
 ====================================================================================================
-DOCUMENTO 04/25: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
+DOCUMENTO 04/26: 01_ARQUITETURA/AUTENTICACAO_WINTHOR.md
 ====================================================================================================
 
 # Arquitetura — Autenticação com o usuário do WinThor
@@ -326,7 +288,7 @@ Todas exigem o token (`JwtAuthGuard`), menos o login e a saúde. Na tela, a sess
 fica na aba (`sessionStorage`); token vencido (401) volta para a entrada.
 
 ====================================================================================================
-DOCUMENTO 05/25: 02_FLUXOS/PREVIA_DOS_LASTS.md
+DOCUMENTO 05/26: 02_FLUXOS/PREVIA_DOS_LASTS.md
 ====================================================================================================
 
 # Fluxo — Prévia dos LASTs
@@ -443,7 +405,7 @@ camposParaPreencher   o que a tela precisa coletar (filial, fornecedor, comprado
 ```
 
 ====================================================================================================
-DOCUMENTO 06/25: 02_FLUXOS/CALCULO_DO_PEDIDO.md
+DOCUMENTO 06/26: 02_FLUXOS/CALCULO_DO_PEDIDO.md
 ====================================================================================================
 
 # Fluxo — Cálculo do 1º pedido do master
@@ -528,7 +490,7 @@ se o AFRMM é digitado ou calculado. **Um trace de um lançamento com despesas
 responde.**
 
 ====================================================================================================
-DOCUMENTO 07/25: 02_FLUXOS/GRAVACAO_NA_3010.md
+DOCUMENTO 07/26: 02_FLUXOS/GRAVACAO_NA_3010.md
 ====================================================================================================
 
 # Fluxo — Gravação do 1º pedido do master na 3010
@@ -669,7 +631,7 @@ desfazer          previsto (só sem entrada, QTENTREGUE = 0), não implementado
 ```
 
 ====================================================================================================
-DOCUMENTO 08/25: 02_FLUXOS/TELA_DE_CONFERENCIA.md
+DOCUMENTO 08/26: 02_FLUXOS/TELA_DE_CONFERENCIA.md
 ====================================================================================================
 
 # Fluxo — Tela de conferência (Angular, pasta `web/`)
@@ -751,7 +713,7 @@ e "pronto"; a faixa de segurança amarela e preta **só** onde há pendência. T
 Barlow (a normal no texto, a condensada nos títulos).
 
 ====================================================================================================
-DOCUMENTO 09/25: 03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md
+DOCUMENTO 09/26: 03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md
 ====================================================================================================
 
 # ESP — Pedido Master de Importação na rotina 3010
@@ -2087,7 +2049,126 @@ P3010-HU7-RN3.
 Nenhum item removido até o momento.
 
 ====================================================================================================
-DOCUMENTO 10/25: 04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
+DOCUMENTO 10/26: 04_VALIDACOES/MATRIZ_VALIDACAO.md
+====================================================================================================
+
+# Matriz de validação — Pedido Master 3010
+
+**Natureza:** índice de rastreabilidade entre os critérios de aceite da ESP e o estado de validação conhecido.
+
+Esta matriz referencia os `CN` da `03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md`.
+Ela não redefine nem duplica os cenários descritos na ESP.
+
+A ausência de classificação explícita nesta matriz **não significa** que o cenário não esteja implementado ou testado.
+Significa apenas que, nesta etapa da migração, a ESP ainda não possui marcador explícito suficiente para atribuir um estado sem inferência.
+
+## Estados usados
+
+- **HOMOLOGADO:** há evidência funcional documentada no escopo indicado.
+- **IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR:** há cobertura técnica, mas falta homologação funcional.
+- **SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP:** estado ainda precisa ser reconciliado com testes e evidências existentes.
+
+## Matriz
+
+| CN | Estado | Referência atual |
+|---|---|---|
+| `P3010-HU1-RN1-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU1-RN1-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU1-RN2-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU1-RN3-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN1-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN2-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN3-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN3-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN4-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN4-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN4-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN5-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN6-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN6-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN7-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN7-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN7-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN8-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN8-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN8-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN9-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN9-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN9-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU2-RN9-CN4` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN1-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU3-RN1-CN2` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU3-RN1-CN3` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU3-RN1-CN4` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU3-RN2-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN2-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN3-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN4-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN5-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN5-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN5-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN6-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN6-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN7-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN7-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN7-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU3-RN8-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU3-RN8-CN2` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU3-RN8-CN3` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN1-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN2-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN2-CN2` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN2-CN3` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN3-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN3-CN2` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN4-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN5-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN5-CN2` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN6-CN1` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN6-CN2` | IMPLEMENTADO · VALIDADO POR TESTES · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN7-CN1` | IMPLEMENTADO · VALIDADO POR TESTE · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU4-RN7-CN2` | IMPLEMENTADO · VALIDADO POR TESTE · HOMOLOGAÇÃO A VALIDAR | ESP + gate técnico atual |
+| `P3010-HU5-RN1-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU5-RN1-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU5-RN2-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU5-RN2-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU5-RN3-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU5-RN3-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU6-RN1-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU6-RN1-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU6-RN2-CN1` | HOMOLOGADO NO ESCOPO VALIDADO DO PRIMEIRO PEDIDO | VALIDACAO_HOMOLOGACAO_RODADAS.md |
+| `P3010-HU6-RN2-CN2` | HOMOLOGADO NO ESCOPO VALIDADO DO PRIMEIRO PEDIDO | VALIDACAO_HOMOLOGACAO_RODADAS.md |
+| `P3010-HU6-RN3-CN1` | HOMOLOGADO NO ESCOPO ATUAL DO PRIMEIRO PEDIDO | VALIDACAO_HOMOLOGACAO_RODADAS.md |
+| `P3010-HU6-RN3-CN2` | HOMOLOGADO NO ESCOPO ATUAL DO PRIMEIRO PEDIDO | VALIDACAO_HOMOLOGACAO_RODADAS.md |
+| `P3010-HU6-RN4-CN1` | HOMOLOGADO PARA CONSIDERAESTPENDSUGCOMPRA=N · RAMO S NÃO HOMOLOGADO | ROTEIRO_QTSUGESTAO.md + pedido 11866 |
+| `P3010-HU6-RN4-CN2` | HOMOLOGADO PARA CONSIDERAESTPENDSUGCOMPRA=N · RAMO S NÃO HOMOLOGADO | ROTEIRO_QTSUGESTAO.md + pedido 11866 |
+| `P3010-HU6-RN4-CN3` | HOMOLOGADO PARA CONSIDERAESTPENDSUGCOMPRA=N · RAMO S NÃO HOMOLOGADO | ROTEIRO_QTSUGESTAO.md + pedido 11866 |
+| `P3010-HU7-RN1-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN1-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN2-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN2-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN3-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN3-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN4-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN4-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN4-CN3` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN5-CN1` | HOMOLOGADO NA TESTE PARA O PRIMEIRO PEDIDO | VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md |
+| `P3010-HU7-RN5-CN2` | HOMOLOGADO NA TESTE PARA O PRIMEIRO PEDIDO | VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md |
+| `P3010-HU7-RN5-CN3` | HOMOLOGADO NA TESTE PARA O PRIMEIRO PEDIDO | VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md |
+| `P3010-HU7-RN6-CN1` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+| `P3010-HU7-RN6-CN2` | SEM CLASSIFICAÇÃO EXPLÍCITA NA ESP | A reconciliar durante a migração documental |
+
+## Resumo da migração
+
+- Cenários existentes na ESP: **85**.
+- Cenários com estado explícito aproveitado nesta primeira matriz: **30**.
+- Cenários ainda sem classificação explícita: **55**.
+
+Os cenários sem classificação devem ser reconciliados progressivamente com testes automatizados,
+evidências de banco/trace e homologações já documentadas, sem transformar evidência parcial em regra universal.
+
+====================================================================================================
+DOCUMENTO 11/26: 04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md
 ====================================================================================================
 
 # Validação — Evidências do trace da 3010 e do banco
@@ -2234,7 +2315,7 @@ b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
 ```
 
 ====================================================================================================
-DOCUMENTO 11/25: 04_VALIDACOES/ROTEIRO_QTSUGESTAO.md
+DOCUMENTO 12/26: 04_VALIDACOES/ROTEIRO_QTSUGESTAO.md
 ====================================================================================================
 
 # Validação — QTSUGESTAO da rotina 3010
@@ -2506,7 +2587,7 @@ CONSIDERAESTPENDSUGCOMPRA = 'S'
 Esse cenário deve ser homologado antes de ser habilitado.
 
 ====================================================================================================
-DOCUMENTO 12/25: 04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
+DOCUMENTO 13/26: 04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md
 ====================================================================================================
 
 # Validação — Rodadas de homologação (MIMO-HOMOLOG, base TESTE)
@@ -3122,7 +3203,7 @@ b813ceb  feat: calcula QTSUGESTAO como a rotina 3010
 ---
 
 ====================================================================================================
-DOCUMENTO 13/25: 04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
+DOCUMENTO 14/26: 04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md
 ====================================================================================================
 
 # Validação — Template × trace da 3010 e o teste de ouro da montagem
@@ -3207,7 +3288,7 @@ do Oracle, que só tira espaço, e essas invoices escapavam; corrigido (patch
 0040). A gravação grava a invoice sem espaço em branco nas pontas.
 
 ====================================================================================================
-DOCUMENTO 14/25: 04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
+DOCUMENTO 15/26: 04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md
 ====================================================================================================
 
 # Validação — Primeiro pedido gravado pela aplicação (11858)
@@ -3287,7 +3368,7 @@ O 11858 foi gravado **antes** da correção do peso (patch 0049): o 15710 foi co
 O pedido fica na base como referência.
 
 ====================================================================================================
-DOCUMENTO 15/25: 04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
+DOCUMENTO 16/26: 04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md
 ====================================================================================================
 
 # Validação — Time da importação com 3 LASTs da semana (25/09)
@@ -3404,7 +3485,7 @@ masters     a partir de 1050/0426
 ```
 
 ====================================================================================================
-DOCUMENTO 16/25: 05_CONTRATOS/CONTRATO_COMEX_API.md
+DOCUMENTO 17/26: 05_CONTRATOS/CONTRATO_COMEX_API.md
 ====================================================================================================
 
 # Contrato — pedido-3010 com o comex-api
@@ -3478,7 +3559,7 @@ processo.erro                pendência LEITURA_FALHOU no pedido daquele arquivo
 ```
 
 ====================================================================================================
-DOCUMENTO 17/25: 05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
+DOCUMENTO 18/26: 05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md
 ====================================================================================================
 
 # Contrato — Rotas da API pedido-3010
@@ -3543,7 +3624,7 @@ Resposta por arquivo: `02_FLUXOS/PREVIA_DOS_LASTS.md` (seção 7). `gravacaoAtiv
 diz à tela se a chave está ligada.
 
 ====================================================================================================
-DOCUMENTO 18/25: 05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
+DOCUMENTO 19/26: 05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md
 ====================================================================================================
 
 # Contrato — As 309 colunas que a 3010 grava (PCITEM e PCPEDIDO)
@@ -3886,7 +3967,7 @@ do corte, que só o template tem.
 | 136 | `DEDUZIRICMSDIFBASEICMSATECIP` | — | 'S' | 'S' · PCPEDIDO | só template |
 
 ====================================================================================================
-DOCUMENTO 19/25: 06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
+DOCUMENTO 20/26: 06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md
 ====================================================================================================
 
 # Operação — Configuração e execução
@@ -4002,7 +4083,7 @@ Arquivo baixado de novo com o mesmo nome vira `NOME (1).md` no Windows:
 para pegar o mais novo, `ls -t "$D"/NOME*.md | head -1`.
 
 ====================================================================================================
-DOCUMENTO 20/25: 06_OPERACAO/ROTEIRO_HOMOLOGACAO.md
+DOCUMENTO 21/26: 06_OPERACAO/ROTEIRO_HOMOLOGACAO.md
 ====================================================================================================
 
 # Operação — Roteiro de conferência na MIMO-HOMOLOG
@@ -4160,7 +4241,7 @@ o que já existe: `PLANILHAS_DIR=... npx jest --config ./test/jest-e2e.json`
 (06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md).
 
 ====================================================================================================
-DOCUMENTO 21/25: 06_OPERACAO/BASE_TESTE.md
+DOCUMENTO 22/26: 06_OPERACAO/BASE_TESTE.md
 ====================================================================================================
 
 # Operação — Base TESTE (MIMO-HOMOLOG)
@@ -4288,7 +4369,7 @@ deixou **12 itens órfãos**; foram apagados depois com os gatilhos desligados.
 Sempre apague o PCITEM **antes** e confira os dois números antes do COMMIT.
 
 ====================================================================================================
-DOCUMENTO 22/25: 06_OPERACAO/SERVIDOR_E_PUBLICACAO.md
+DOCUMENTO 23/26: 06_OPERACAO/SERVIDOR_E_PUBLICACAO.md
 ====================================================================================================
 
 # Operação — Servidor e publicação
@@ -4375,7 +4456,7 @@ push em master com CI verde
 ```
 
 ====================================================================================================
-DOCUMENTO 23/25: 07_DECISOES/DECISOES.md
+DOCUMENTO 24/26: 07_DECISOES/DECISOES.md
 ====================================================================================================
 
 # Arquitetura — Decisões
@@ -4413,7 +4494,9 @@ citada nos commits e nos testes.
 | — | Tela | Aplicação Angular **separada da API**, não servida pelo NestJS | conversa da etapa 2 |
 | — | Porto da tributação | **Porto de nacionalização** (PCPEDIDO.CODPORTONACIONALIZACAO), não o de chegada | homologação: pedido 9726, 6/6 × 0/6 |
 | — | VLTOTAL do 1º pedido | Regra "parcela × QT a 2 casas"; **diferença de até 2 centavos aceita** (8 de 11 exatos, 3 a 1-2 centavos: arredondamento da própria tela). O contas a pagar nasce do 2º pedido | Cleilson, 24/09 |
-| — | Filial e comprador na tela | Escolhidos a cada pedido; a tela **não** lembra a última escolha (só marca a filial sozinha quando o usuário tem uma só na PCLIB) | Cleilson, 24/09 |
+| — | Filial e comprador na tela | Aplicar filial `4` e comprador `201` como defaults quando estiverem disponíveis ao usuário; não forçar default inexistente e manter ambos editáveis | implementação `89e1883` + `P3010-HU3-RN1` |
+| — | Cotação USD do dia | Consultar BCB/PTAX, preferir fechamento do dia e aplicar acréscimo de 5%; escrita automática no WinThor somente com `COTACAO_BCB_GRAVACAO_ATIVA` habilitada; cotação histórica não é sobrescrita | implementação `2acd70e`/`3f3b652` + `P3010-HU4` |
+| — | Cronologia das datas | Recusar chegada anterior ao embarque e entrada anterior à chegada; datas iguais são permitidas; validação existe na tela e na API | implementação `a5362cd` + `P3010-HU3-RN8` |
 | — | QTSUGESTAO | **Calcular como a 3010 no caminho homologado**: `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`; preservar resultado negativo; `QTVEZES` não entra na conta-base observada; filial com `CONSIDERAESTPENDSUGCOMPRA='S'` é recusada até esse ramo ser homologado | homologação 30/09, pedido 11866 |
 | — | PCFORNECFILIAL na gravação | **Igual à 3010**: todos os fornecedores nas filiais que faltam (fora a 99) | Cleilson, 24/09 |
 | — | Motivo da invoice repetida | **Nos dois**: **OBS7** ("Invoice repetida: ...", 100 caracteres; OBS4, OBS6 e OBS7 nunca usadas em 2026) e log da aplicação | Cleilson, 24 e 25/09 |
@@ -4436,10 +4519,23 @@ custo com o frete em dólar sem converter: replicar (hoje) ou corrigir (avisar o
 ```
 
 ====================================================================================================
-DOCUMENTO 24/25: CHANGELOG.md
+DOCUMENTO 25/26: CHANGELOG.md
 ====================================================================================================
 
 # Changelog — Documentação do pedido-3010
+
+## 2026-10-07 — Estado documental e gate atualizados
+
+- Documentação alinhada ao código `pedido-3010 @ 51346d6`.
+- BCB/PTAX + 5% implementado em `2acd70e`; proteção da gravação concorrente da cotação em `3f3b652`.
+- Defaults operacionais de filial `4` e comprador `201`, quando disponíveis e sempre editáveis, implementados em `89e1883`.
+- Cronologia das datas previstas implementada e coberta por testes na tela e na API em `a5362cd`; o pedido `11869` permanece somente como evidência do comportamento incorreto anterior à correção.
+- `51346d6` restaurou o gate completo da API após as mudanças de cotação.
+- Gate atual: API lint, 349/349 testes unitários, 48 E2E aprovados + 2 pulados, build e `diff --check`; tela com 76/76 testes e build aprovado.
+- As evoluções posteriores ao baseline funcional `b813ceb` continuam aguardando homologação funcional na base TESTE.
+- O checkpoint de 25/09 deixou de fazer parte da fotografia atual do STATUS e permanece preservado como histórico e nas validações específicas.
+- A seção permanente de modo de trabalho foi movida do STATUS para o README.
+- Criada `04_VALIDACOES/MATRIZ_VALIDACAO.md`, inicialmente rastreando os 85 critérios de aceite da ESP sem inferir estados não sustentados pelos documentos.
 
 ## 2026-09-30 — QTSUGESTAO homologada e implementada
 
@@ -4550,24 +4646,24 @@ DOCUMENTO 24/25: CHANGELOG.md
   regra código × descrição, cadastros.
 
 ====================================================================================================
-DOCUMENTO 25/25: README.md
+DOCUMENTO 26/26: README.md
 ====================================================================================================
 
 # Documentação — pedido-3010 (pedido master de importação na rotina 3010)
 
 **Projeto:** `pedido-3010`
 **Branch acompanhada:** `master`
-**Data de referência:** 2026-09-30
-**HEAD acompanhado:** `b813ceb feat: calcula QTSUGESTAO como a rotina 3010`
-**HEAD remoto acompanhado:** `origin/master` em `b813ceb`
-**Situação do checkpoint:** gravação do 1º pedido validada na TESTE; `QTSUGESTAO` homologada e implementada; produção ainda não publicada e protegida por `GRAVACAO_3010_ATIVA`
+**Data de referência:** 2026-10-07
+**HEAD acompanhado:** `51346d6 test: restaura gate da API após cotação BCB`
+**HEAD remoto acompanhado:** `origin/master` em `51346d6`
+**Situação do checkpoint:** 1º pedido homologado na TESTE; `QTSUGESTAO` homologada no ramo `CONSIDERAESTPENDSUGCOMPRA=N`; evoluções posteriores a `b813ceb` com gate técnico verde e homologação funcional pendente; produção não publicada
 **Serviços consumidos:** `comex-api` (leitura dos LASTs) · Oracle 19c do WinThor
 
 ---
 
 <!-- DOC_VALIDACAO_TIME_2026_09_25:start -->
 
-### Checkpoint atual — primeiro pedido gravado e validação do time da importação
+### Checkpoint histórico de 25/09 — primeiro pedido gravado e validação do time da importação
 
 Em 2026-09-25 a aplicação gravou o primeiro pedido na homologação:
 
@@ -4632,8 +4728,10 @@ a 3010 grava; o 2º pedido continua sendo criado pela própria 3010.
 
 ## 2. Estado validado
 
-- a prévia lê os LASTs pelo comex, resolve o de-para e aplica as regras; nenhuma
-  rota além da gravação escreve no banco (há teste);
+- a prévia lê os LASTs pelo comex, resolve o de-para e aplica as regras;
+- as escritas no WinThor ficam restritas aos fluxos explícitos de gravação:
+  pedido, protegido por `GRAVACAO_3010_ATIVA`, e cotação BCB/PTAX, protegida por
+  `COTACAO_BCB_GRAVACAO_ATIVA`;
 - o cálculo do 1º pedido reproduz a homologação: 71 de 71 itens, VLTOTAL a até 2
   centavos;
 - a gravação monta as 309 colunas como a 3010 (teste de ouro contra o template e
@@ -4646,16 +4744,21 @@ a 3010 grava; o 2º pedido continua sendo criado pela própria 3010.
   `QTGIRODIA × (PRAZOENTREGA + TEMREPOS) − ESTOQUE_DISPONIVEL`;
   implementação em `b813ceb`, com `c96e389` corrigindo a fonte do giro para
   `PCEST.QTGIRODIA`.
+- as evoluções posteriores a `b813ceb` — BCB/PTAX + 5%, defaults de filial/comprador, proteção concorrente da cotação e validação da cronologia — estão implementadas e com gate técnico verde, mas ainda aguardam homologação funcional.
 
-### Gate (25/09)
+### Gate técnico atual — 06/10/2026
 
-```text
-API unidade        318 / 318 PASS
-API ponta a ponta  48 PASS, 2 pulados
-tela               69 / 69 PASS
-tsc / eslint / build        PASS
-regra do teste de regressão PASS
-```
+Código validado: `pedido-3010 @ 51346d6`.
+
+    API    lint             PASS
+    API    unidade          349 / 349 PASS
+    API    ponta a ponta    48 PASS, 2 pulados
+    API    build            PASS
+    API    diff --check     PASS
+    tela   Vitest           76 / 76 PASS
+    tela   build            PASS
+
+Os 2 testes E2E pulados dependem do `comex-api` real e/ou das planilhas externas de homologação.
 
 ## 3. Evidência de referência
 
@@ -4676,20 +4779,21 @@ Leia nesta ordem:
 7. `02_FLUXOS/GRAVACAO_NA_3010.md`
 8. `02_FLUXOS/TELA_DE_CONFERENCIA.md`
 9. `03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md`
-10. `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
-11. `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
-12. `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
-13. `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
-14. `04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
-15. `04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
-16. `05_CONTRATOS/CONTRATO_COMEX_API.md`
-17. `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
-18. `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
-19. `06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
-20. `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
-21. `06_OPERACAO/BASE_TESTE.md`
-22. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
-23. `07_DECISOES/DECISOES.md`
+10. `04_VALIDACOES/MATRIZ_VALIDACAO.md`
+11. `04_VALIDACOES/EVIDENCIAS_TRACE_E_BANCO.md`
+12. `04_VALIDACOES/ROTEIRO_QTSUGESTAO.md`
+13. `04_VALIDACOES/VALIDACAO_HOMOLOGACAO_RODADAS.md`
+14. `04_VALIDACOES/VALIDACAO_TEMPLATE_X_TRACE.md`
+15. `04_VALIDACOES/VALIDACAO_PRIMEIRO_PEDIDO_GRAVADO.md`
+16. `04_VALIDACOES/VALIDACAO_TIME_IMPORTACAO_3_LASTS.md`
+17. `05_CONTRATOS/CONTRATO_COMEX_API.md`
+18. `05_CONTRATOS/CONTRATO_API_PEDIDO_3010.md`
+19. `05_CONTRATOS/COLUNAS_PCPEDIDO_PCITEM.md`
+20. `06_OPERACAO/CONFIGURACAO_E_EXECUCAO.md`
+21. `06_OPERACAO/ROTEIRO_HOMOLOGACAO.md`
+22. `06_OPERACAO/BASE_TESTE.md`
+23. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
+24. `07_DECISOES/DECISOES.md`
 
 A `ESP_PEDIDO_MASTER.md` está em migração e ainda não substitui sozinha os
 documentos anteriores. Enquanto essa migração não for concluída, os fluxos,
@@ -4712,6 +4816,19 @@ Não registrar senha, `.env` real, preço de fornecedor nem LAST neste repositó
 
 `DOCUMENTACAO_ATIVA_COMPLETA.txt` é derivado dos documentos canônicos e deve ser
 regenerado com `tools/regenerate_consolidated.py`.
+
+### Como trabalhar neste projeto
+
+```text
+correção de bug       começa por um teste de regressão que falha (gancho + CI)
+evidência             dado real do banco, trace ou LAST real; hipótese é dita como hipótese
+toda gravação         precisa de caminho de volta
+explicação            fluxo passo a passo, exemplo concreto primeiro, sem termos em inglês
+git                   comandos com saída sempre com --no-pager
+patches               aplicar só na máquina em uso e fazer push; na outra, pull --rebase
+entrega               todo commit de código vira patch; conferir "commits = patches" e
+                      aplicar os patches numa cópia limpa antes de entregar
+```
 
 ## 6. De onde veio cada documento
 

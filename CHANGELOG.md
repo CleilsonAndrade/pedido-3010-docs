@@ -1,5 +1,18 @@
 # Changelog — Documentação do pedido-3010
 
+## 2026-10-07 — Estado documental e gate atualizados
+
+- Documentação alinhada ao código `pedido-3010 @ 51346d6`.
+- BCB/PTAX + 5% implementado em `2acd70e`; proteção da gravação concorrente da cotação em `3f3b652`.
+- Defaults operacionais de filial `4` e comprador `201`, quando disponíveis e sempre editáveis, implementados em `89e1883`.
+- Cronologia das datas previstas implementada e coberta por testes na tela e na API em `a5362cd`; o pedido `11869` permanece somente como evidência do comportamento incorreto anterior à correção.
+- `51346d6` restaurou o gate completo da API após as mudanças de cotação.
+- Gate atual: API lint, 349/349 testes unitários, 48 E2E aprovados + 2 pulados, build e `diff --check`; tela com 76/76 testes e build aprovado.
+- As evoluções posteriores ao baseline funcional `b813ceb` continuam aguardando homologação funcional na base TESTE.
+- O checkpoint de 25/09 deixou de fazer parte da fotografia atual do STATUS e permanece preservado como histórico e nas validações específicas.
+- A seção permanente de modo de trabalho foi movida do STATUS para o README.
+- Criada `04_VALIDACOES/MATRIZ_VALIDACAO.md`, inicialmente rastreando os 85 critérios de aceite da ESP sem inferir estados não sustentados pelos documentos.
+
 ## 2026-09-30 — QTSUGESTAO homologada e implementada
 
 - Pedido nativo **11866**, lançado pela própria 3010 na TESTE, reproduziu a
