@@ -4,7 +4,7 @@ DOCUMENTO 01/26: 00_STATUS/STATUS_PEDIDO_3010.md
 
 # STATUS — pedido-3010
 
-**Status documental:** EM MIGRAÇÃO para o modelo documental com ESP
+**Status documental:** MIGRAÇÃO CONCLUÍDA — ESP funcional canônica e matriz de validação reconciliada 85/85
 **Data de referência:** 2026-10-07
 **Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
 **Branch:** `master`
@@ -720,26 +720,32 @@ DOCUMENTO 09/26: 03_ESPECIFICACOES/ESP_PEDIDO_MASTER.md
 
 Funcionalidade:            Pedido Master de Importação
 Código:                    P3010
-Versão do documento:       0.1
+Versão do documento:       1.0
 Comportamento homologado:  pedido-3010 @ b813ceb
 Última demanda:            A VALIDAR — projeto anterior à adoção do padrão
 
-**Estado desta ESP:** EM MIGRAÇÃO — ainda não é documento canônico.
+**Estado desta ESP:** CANÔNICA — migração documental concluída em 2026-10-07.
 
-Esta especificação será construída a partir das regras já comprovadas no
-repositório documental, no código, nos testes, no trace e na homologação.
+Esta especificação consolida o comportamento funcional do Pedido Master 3010
+a partir das regras sustentadas pelo repositório documental, código, testes,
+traces e homologações existentes.
 
-Enquanto a migração não terminar:
+Os 85 critérios de aceite desta ESP estão reconciliados em
+`04_VALIDACOES/MATRIZ_VALIDACAO.md`.
 
-- os documentos atuais continuam sendo referência;
-- nenhuma regra antiga será apagada;
-- divergências serão registradas explicitamente;
-- comportamento apenas implementado não será chamado de homologado;
-- hipóteses continuarão marcadas como hipótese ou A VALIDAR.
+A conclusão da migração documental não significa homologação funcional integral:
 
-## Escopo inicial
+- comportamento homologado permanece identificado como homologado;
+- comportamento coberto apenas por testes continua identificado como testado;
+- retestes e homologações pendentes permanecem explicitamente marcados;
+- hipóteses continuam marcadas como hipótese ou `A VALIDAR`;
+- documentos de arquitetura, fluxos, contratos e validações permanecem como
+  fontes complementares de detalhe e evidência, sem competir com a ESP como
+  referência funcional.
 
-A especificação cobrirá:
+## Escopo funcional
+
+A especificação cobre:
 
 - autenticação e autorização;
 - leitura e prévia dos LASTs;
@@ -4534,6 +4540,13 @@ DOCUMENTO 25/26: CHANGELOG.md
 
 # Changelog — Documentação do pedido-3010
 
+## 2026-10-07 — Migração documental concluída
+
+- A `ESP_PEDIDO_MASTER.md` passa da versão `0.1` em migração para a versão `1.0` canônica.
+- A matriz de validação encerra a reconciliação com **85/85 critérios de aceite** classificados e **0** sem classificação.
+- A conclusão documental não altera o baseline funcional homologado `b813ceb` nem promove automaticamente cenários testados a homologados.
+- Arquitetura, fluxos, contratos, decisões e validações permanecem como documentação complementar e fonte de evidência.
+
 ## 2026-10-07 — Estado documental e gate atualizados
 
 - Documentação alinhada ao código `pedido-3010 @ 51346d6`.
@@ -4807,10 +4820,15 @@ Leia nesta ordem:
 23. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
 24. `07_DECISOES/DECISOES.md`
 
-A `ESP_PEDIDO_MASTER.md` está em migração e ainda não substitui sozinha os
-documentos anteriores. Enquanto essa migração não for concluída, os fluxos,
-validações, contratos e decisões continuam sendo fontes complementares de
-referência.
+A `ESP_PEDIDO_MASTER.md` é a **especificação funcional canônica** do projeto.
+A migração documental foi concluída com os **85 critérios de aceite reconciliados
+na `04_VALIDACOES/MATRIZ_VALIDACAO.md`**.
+
+Os documentos de arquitetura, fluxos, contratos, decisões e validações continuam
+como fontes complementares de detalhe técnico, histórico e evidência. A promoção
+da ESP a documento canônico não significa que todos os seus cenários estejam
+funcionalmente homologados; o nível de evidência de cada CN permanece registrado
+na matriz.
 
 `CHANGELOG.md` registra a evolução documental.
 

@@ -1,5 +1,12 @@
 # Changelog — Documentação do pedido-3010
 
+## 2026-10-07 — Migração documental concluída
+
+- A `ESP_PEDIDO_MASTER.md` passa da versão `0.1` em migração para a versão `1.0` canônica.
+- A matriz de validação encerra a reconciliação com **85/85 critérios de aceite** classificados e **0** sem classificação.
+- A conclusão documental não altera o baseline funcional homologado `b813ceb` nem promove automaticamente cenários testados a homologados.
+- Arquitetura, fluxos, contratos, decisões e validações permanecem como documentação complementar e fonte de evidência.
+
 ## 2026-10-07 — Estado documental e gate atualizados
 
 - Documentação alinhada ao código `pedido-3010 @ 51346d6`.

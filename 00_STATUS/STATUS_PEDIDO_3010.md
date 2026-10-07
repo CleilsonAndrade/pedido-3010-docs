@@ -1,6 +1,6 @@
 # STATUS — pedido-3010
 
-**Status documental:** EM MIGRAÇÃO para o modelo documental com ESP
+**Status documental:** MIGRAÇÃO CONCLUÍDA — ESP funcional canônica e matriz de validação reconciliada 85/85
 **Data de referência:** 2026-10-07
 **Repositório:** `pedido-3010` (GitHub `CleilsonAndrade/pedido-3010`)
 **Branch:** `master`

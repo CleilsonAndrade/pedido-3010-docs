@@ -2,26 +2,32 @@
 
 Funcionalidade:            Pedido Master de Importação
 Código:                    P3010
-Versão do documento:       0.1
+Versão do documento:       1.0
 Comportamento homologado:  pedido-3010 @ b813ceb
 Última demanda:            A VALIDAR — projeto anterior à adoção do padrão
 
-**Estado desta ESP:** EM MIGRAÇÃO — ainda não é documento canônico.
+**Estado desta ESP:** CANÔNICA — migração documental concluída em 2026-10-07.
 
-Esta especificação será construída a partir das regras já comprovadas no
-repositório documental, no código, nos testes, no trace e na homologação.
+Esta especificação consolida o comportamento funcional do Pedido Master 3010
+a partir das regras sustentadas pelo repositório documental, código, testes,
+traces e homologações existentes.
 
-Enquanto a migração não terminar:
+Os 85 critérios de aceite desta ESP estão reconciliados em
+`04_VALIDACOES/MATRIZ_VALIDACAO.md`.
 
-- os documentos atuais continuam sendo referência;
-- nenhuma regra antiga será apagada;
-- divergências serão registradas explicitamente;
-- comportamento apenas implementado não será chamado de homologado;
-- hipóteses continuarão marcadas como hipótese ou A VALIDAR.
+A conclusão da migração documental não significa homologação funcional integral:
 
-## Escopo inicial
+- comportamento homologado permanece identificado como homologado;
+- comportamento coberto apenas por testes continua identificado como testado;
+- retestes e homologações pendentes permanecem explicitamente marcados;
+- hipóteses continuam marcadas como hipótese ou `A VALIDAR`;
+- documentos de arquitetura, fluxos, contratos e validações permanecem como
+  fontes complementares de detalhe e evidência, sem competir com a ESP como
+  referência funcional.
 
-A especificação cobrirá:
+## Escopo funcional
+
+A especificação cobre:
 
 - autenticação e autorização;
 - leitura e prévia dos LASTs;

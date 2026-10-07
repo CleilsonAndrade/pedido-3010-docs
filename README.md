@@ -144,10 +144,15 @@ Leia nesta ordem:
 23. `06_OPERACAO/SERVIDOR_E_PUBLICACAO.md`
 24. `07_DECISOES/DECISOES.md`
 
-A `ESP_PEDIDO_MASTER.md` está em migração e ainda não substitui sozinha os
-documentos anteriores. Enquanto essa migração não for concluída, os fluxos,
-validações, contratos e decisões continuam sendo fontes complementares de
-referência.
+A `ESP_PEDIDO_MASTER.md` é a **especificação funcional canônica** do projeto.
+A migração documental foi concluída com os **85 critérios de aceite reconciliados
+na `04_VALIDACOES/MATRIZ_VALIDACAO.md`**.
+
+Os documentos de arquitetura, fluxos, contratos, decisões e validações continuam
+como fontes complementares de detalhe técnico, histórico e evidência. A promoção
+da ESP a documento canônico não significa que todos os seus cenários estejam
+funcionalmente homologados; o nível de evidência de cada CN permanece registrado
+na matriz.
 
 `CHANGELOG.md` registra a evolução documental.
 
